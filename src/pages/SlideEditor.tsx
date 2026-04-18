@@ -8,8 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, Plus, Trash2, Play, FileDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Save, Plus, Trash2, Play, FileDown, ChevronUp, ChevronDown, Presentation } from "lucide-react";
 import jsPDF from "jspdf";
+import { exportDeckAsPPTX } from "@/lib/pptxExport";
 
 export default function SlideEditor() {
   const { id } = useParams();
@@ -71,8 +72,12 @@ export default function SlideEditor() {
     <>
       <PageHeader title={draft.title} description={draft.patientId ? `Personalisiert für ${draft.patientId}` : "Allgemeines Deck"}
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={exportPdf}><FileDown className="size-4 mr-2" />PDF</Button>
+            <Button variant="outline" onClick={async () => {
+              try { await exportDeckAsPPTX(draft); toast.success("PowerPoint heruntergeladen."); }
+              catch (e: any) { toast.error(e?.message ?? "Export fehlgeschlagen"); }
+            }}><Presentation className="size-4 mr-2" />PowerPoint</Button>
             <Button variant="outline" asChild><Link to={`/slides/${draft.id}/praesentieren`}><Play className="size-4 mr-2" />Präsentieren</Link></Button>
             <Button onClick={save}><Save className="size-4 mr-2" />Speichern</Button>
           </div>
