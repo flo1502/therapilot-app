@@ -1,0 +1,182 @@
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { db, SessionEntry, SessionFormat, uid } from "@/lib/db";
+import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Save, Sparkles, Mic, MicOff } from "lucide-react";
+import { callAi, StructuredSession } from "@/lib/ai/provider";
+import { useLiveQuery } from "dexie-react-hooks";
+
+const FORMATS: SessionFormat[] = ["SOAP", "VT-Verlauf", "Frei"];
+
+export default function SessionEdit() {
+  const { id } = useParams();
+  const isNew = !id || id === "neu";
+  const [search] = useSearchParams();
+  const nav = useNavigate();
+
+  const patients = useLiveQuery(() => db.patients.where("active").equals(1 as any).toArray().catch(() => db.patients.toArray()), []);
+  const allPatients = useLiveQuery(() => db.patients.toArray(), []);
+
+  const [s, setS] = useState<SessionEntry | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const recRef = useRef<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      if (isNew) {
+        const pid = search.get("patient") ?? "";
+        setS({
+          id: uid("s_"), patientId: pid, date: Date.now(), durationMin: 50,
+          rawNotes: "", format: "SOAP", createdAt: Date.now(),
+        });
+      } else {
+        const ex = await db.sessions.get(id!);
+        if (!ex) { toast.error("Nicht gefunden."); nav("/sessions"); return; }
+        setS(ex);
+      }
+    })();
+  }, [id, isNew, nav, search]);
+
+  if (!s) return <div className="text-sm text-muted-foreground">Lade…</div>;
+
+  const save = async () => {
+    if (!s.patientId) { toast.error("Bitte Patient:in wählen."); return; }
+    await db.sessions.put(s);
+    toast.success("Gespeichert.");
+    if (isNew) nav(`/sessions/${s.id}`);
+  };
+
+  const structure = async () => {
+    if (!s.rawNotes.trim()) { toast.error("Bitte Roh-Notizen erfassen."); return; }
+    const patient = allPatients?.find(x => x.id === s.patientId);
+    setBusy(true);
+    try {
+      const result = await callAi<StructuredSession>({
+        task: "structure-session",
+        patientPseudonym: s.patientId,
+        payload: {
+          rawNotes: s.rawNotes,
+          format: s.format,
+          approach: patient?.approach,
+          goals: patient?.goals,
+        },
+      });
+      const struct = `**Subjektiv**\n${result.subjektiv}\n\n**Objektiv**\n${result.objektiv}\n\n**Assessment**\n${result.assessment}\n\n**Plan**\n${result.plan}` +
+        (result.hausaufgabe ? `\n\n**Hausaufgabe**\n${result.hausaufgabe}` : "") +
+        (result.naechsterFokus ? `\n\n**Nächster Fokus**\n${result.naechsterFokus}` : "");
+      const updated = { ...s, structured: struct, homework: result.hausaufgabe, nextFocus: result.naechsterFokus };
+      setS(updated);
+      await db.sessions.put(updated);
+      toast.success("AI-Strukturierung erstellt.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "AI-Fehler");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleRec = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { toast.error("Diktat in diesem Browser nicht verfügbar."); return; }
+    if (recording) {
+      recRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "de-DE";
+    rec.interimResults = true;
+    rec.continuous = true;
+    let finalText = s.rawNotes;
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t + " ";
+        else interim += t;
+      }
+      setS(prev => prev ? { ...prev, rawNotes: finalText + interim } : prev);
+    };
+    rec.onerror = () => setRecording(false);
+    rec.onend = () => setRecording(false);
+    rec.start();
+    recRef.current = rec;
+    setRecording(true);
+  };
+
+  return (
+    <>
+      <PageHeader title={isNew ? "Neue Session" : `Session · ${s.patientId}`}
+        description="Roh-Notiz erfassen, dann AI-strukturiert dokumentieren."
+        actions={<Button onClick={save}><Save className="size-4 mr-2" />Speichern</Button>}
+      />
+
+      <Card className="mb-4"><CardContent className="p-5 grid md:grid-cols-4 gap-4">
+        <div className="md:col-span-2">
+          <Label>Patient:in</Label>
+          <Select value={s.patientId} onValueChange={v => setS({ ...s, patientId: v })}>
+            <SelectTrigger><SelectValue placeholder="Pseudonym wählen" /></SelectTrigger>
+            <SelectContent>
+              {allPatients?.map(p => <SelectItem key={p.id} value={p.id}>{p.id} · {p.approach}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Datum</Label>
+          <Input type="datetime-local"
+            value={new Date(s.date - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+            onChange={e => setS({ ...s, date: new Date(e.target.value).getTime() })} />
+        </div>
+        <div>
+          <Label>Dauer (min)</Label>
+          <Input type="number" value={s.durationMin} onChange={e => setS({ ...s, durationMin: parseInt(e.target.value) || 0 })} />
+        </div>
+        <div>
+          <Label>Format</Label>
+          <Select value={s.format} onValueChange={(v: any) => setS({ ...s, format: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{FORMATS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </CardContent></Card>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card><CardContent className="p-5">
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-sm font-medium">Roh-Notiz</Label>
+            <Button type="button" size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
+              {recording ? <><MicOff className="size-4 mr-1.5" />Stop</> : <><Mic className="size-4 mr-1.5" />Diktat</>}
+            </Button>
+          </div>
+          <Textarea rows={18} value={s.rawNotes} onChange={e => setS({ ...s, rawNotes: e.target.value })}
+            placeholder="Stichpunkte, Themen, Beobachtungen während der Sitzung…" />
+          <Button className="mt-3 w-full" onClick={structure} disabled={busy}>
+            <Sparkles className="size-4 mr-2" />
+            {busy ? "Strukturiere…" : `Mit AI als ${s.format} strukturieren`}
+          </Button>
+        </CardContent></Card>
+
+        <Card><CardContent className="p-5">
+          <Label className="text-sm font-medium">Strukturierte Dokumentation</Label>
+          {s.structured ? (
+            <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+              {s.structured}
+            </div>
+          ) : (
+            <div className="mt-2 text-sm text-muted-foreground italic">
+              Noch keine Strukturierung. Klicken Sie links auf „Mit AI strukturieren".
+            </div>
+          )}
+        </CardContent></Card>
+      </div>
+    </>
+  );
+}
