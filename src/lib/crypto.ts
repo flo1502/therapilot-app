@@ -24,9 +24,9 @@ function b64decode(s: string): Uint8Array {
 }
 
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
-  const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+  const baseKey = await crypto.subtle.importKey("raw", enc.encode(password) as BufferSource, "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 200_000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: 200_000, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,
