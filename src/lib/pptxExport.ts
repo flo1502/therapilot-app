@@ -229,7 +229,7 @@ function addSORKC(pptx: PptxGenJS, meta: Meta) {
     s.addText(it.t, { x, y: y + 0.85, w: boxW, h: 0.35, fontFace: FONT_BODY, fontSize: 13, bold: true, color: COLOR.sageDeep, align: "center" });
     s.addText(it.d, { x: x + 0.08, y: y + 1.2, w: boxW - 0.16, h: 0.55, fontFace: FONT_BODY, fontSize: 9, color: COLOR.inkSoft, align: "center", valign: "top" });
     if (i < labels.length - 1) {
-      s.addShape("rightTriangle", { x: x + boxW + gap - 0.06, y: y + boxH / 2 - 0.08, w: 0.14, h: 0.16, fill: { color: COLOR.sage }, line: { color: COLOR.sage }, rotate: 30 });
+      s.addShape("rightArrow", { x: x + boxW + gap - 0.06, y: y + boxH / 2 - 0.08, w: 0.14, h: 0.16, fill: { color: COLOR.sage }, line: { color: COLOR.sage }, rotate: 30 });
     }
   });
 
@@ -297,7 +297,7 @@ function addABCModell(pptx: PptxGenJS, meta: Meta) {
     s.addText(it.t, { x, y: 3.05, w: 2.7, h: 0.4, fontFace: FONT_BODY, fontSize: 16, bold: true, color: COLOR.sageDeep, align: "center" });
     s.addText(it.d, { x: x + 0.15, y: 3.5, w: 2.4, h: 0.8, fontFace: FONT_BODY, fontSize: 12, color: COLOR.inkSoft, align: "center", valign: "top" });
     if (i < items.length - 1) {
-      s.addShape("rightTriangle", { x: x + 2.78, y: 3.05, w: 0.18, h: 0.3, fill: { color: COLOR.accent }, line: { color: COLOR.accent }, rotate: 30 });
+      s.addShape("rightArrow", { x: x + 2.78, y: 3.05, w: 0.18, h: 0.3, fill: { color: COLOR.accent }, line: { color: COLOR.accent }, rotate: 30 });
     }
   });
   addFooter(s, meta.deckTitle, meta.idx, meta.total, meta.pseudonym);
@@ -367,7 +367,7 @@ function addACTBus(pptx: PptxGenJS, meta: Meta) {
   });
 
   // Straßenpfeil = Werterichtung
-  s.addShape("rightTriangle", { x: 8.8, y: 3.1, w: 0.6, h: 0.4, fill: { color: COLOR.sageDeep }, line: { color: COLOR.sageDeep }, rotate: 30 });
+  s.addShape("rightArrow", { x: 8.8, y: 3.1, w: 0.6, h: 0.4, fill: { color: COLOR.sageDeep }, line: { color: COLOR.sageDeep }, rotate: 30 });
   s.addText("Ihre Werte", { x: 8.3, y: 3.55, w: 1.5, h: 0.3, fontFace: FONT_BODY, fontSize: 10, bold: true, color: COLOR.sageDeep });
 
   s.addText("Gedanken dürfen mitfahren – aber Sie bestimmen die Richtung.", {
@@ -420,7 +420,7 @@ function addAchtsamkeit(pptx: PptxGenJS, meta: Meta) {
     s.addText(st.t, { x: cx - 1.0, y: cy - 0.1, w: 2.0, h: 0.35, fontFace: FONT_BODY, fontSize: 13, bold: true, color: COLOR.sageDeep, align: "center" });
     s.addText(st.d, { x: cx - 1.0, y: cy + 0.25, w: 2.0, h: 0.7, fontFace: FONT_BODY, fontSize: 9, color: COLOR.inkSoft, align: "center" });
     if (i < steps.length - 1) {
-      s.addShape("rightTriangle", { x: cx + r + 0.1, y: cy - 0.1, w: 0.2, h: 0.25, fill: { color: COLOR.accent }, line: { color: COLOR.accent }, rotate: 30 });
+      s.addShape("rightArrow", { x: cx + r + 0.1, y: cy - 0.1, w: 0.2, h: 0.25, fill: { color: COLOR.accent }, line: { color: COLOR.accent }, rotate: 30 });
     }
   });
   s.addText("Eine Insel der Ruhe – mitten im Alltag.", {
