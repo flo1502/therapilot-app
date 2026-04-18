@@ -46,7 +46,7 @@ export async function initializeEncryption(password: string): Promise<void> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await deriveKey(password, salt);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode("ok"));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, enc.encode("ok") as BufferSource);
   const verify = new Uint8Array(iv.length + ct.byteLength);
   verify.set(iv, 0);
   verify.set(new Uint8Array(ct), iv.length);
@@ -66,7 +66,7 @@ export async function unlock(password: string): Promise<boolean> {
   const ct = verify.slice(12);
   try {
     const key = await deriveKey(password, salt);
-    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, ct as BufferSource);
     if (dec.decode(pt) !== "ok") return false;
     cachedKey = key;
     cachedSalt = salt;
@@ -84,7 +84,7 @@ export function lock() {
 export async function encryptString(plain: string): Promise<string> {
   if (!cachedKey) throw new Error("Daten sind verschlüsselt – bitte mit Master-Passwort entsperren.");
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cachedKey, enc.encode(plain));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, cachedKey, enc.encode(plain) as BufferSource);
   const out = new Uint8Array(iv.length + ct.byteLength);
   out.set(iv, 0);
   out.set(new Uint8Array(ct), iv.length);
@@ -96,7 +96,7 @@ export async function decryptString(payload: string): Promise<string> {
   const data = b64decode(payload);
   const iv = data.slice(0, 12);
   const ct = data.slice(12);
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, cachedKey, ct);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv as BufferSource }, cachedKey, ct as BufferSource);
   return dec.decode(pt);
 }
 
