@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { SlideRenderer } from "@/components/SlideRenderer";
 
 export default function SlidePresent() {
   const { id } = useParams();
@@ -34,17 +35,7 @@ export default function SlidePresent() {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-8 md:p-16 overflow-auto">
-        <div className="max-w-4xl w-full">
-          <h1 className="text-4xl md:text-6xl font-display mb-10 text-primary">{s.title}</h1>
-          <ul className="space-y-5 text-xl md:text-2xl leading-relaxed">
-            {s.bullets.map((b, j) => (
-              <li key={j} className="flex gap-4 animate-fade-in">
-                <span className="text-accent shrink-0">•</span>
-                <span>{b}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <SlideRenderer slide={s} variant="present" />
       </div>
 
       <div className="flex justify-between items-center p-4 border-t">
