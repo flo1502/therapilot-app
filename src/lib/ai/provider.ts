@@ -33,9 +33,25 @@ export interface StructuredSession {
   naechsterFokus?: string;
 }
 
+export interface GeneratedSlide {
+  title: string;
+  layout?: "headline" | "model" | "vicious-cycle" | "before-after" | "steps" | "question" | "bullets";
+  iconKey?: string;
+  bullets: string[];
+  headline?: string;
+  subline?: string;
+  nodes?: { label: string; description?: string }[];
+  centerLabel?: string;
+  cycleNodes?: { label: string; description?: string }[];
+  before?: { title: string; items: string[] };
+  after?: { title: string; items: string[] };
+  steps?: { title: string; description?: string }[];
+  notes?: string;
+}
+
 export interface GeneratedDeck {
   title: string;
-  slides: { title: string; bullets: string[]; notes?: string }[];
+  slides: GeneratedSlide[];
 }
 
 function deepPseudonymize<T>(obj: T, pseudo?: string): T {

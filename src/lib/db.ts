@@ -45,11 +45,43 @@ export interface SlideDeck {
   updatedAt: number;
 }
 
+// Therapie-spezifische Layout-Typen für visuell reichere Slides.
+// "bullets" ist der klassische Fallback. Alle anderen Layouts haben eigene
+// strukturierte Felder in `layoutData`. Der Renderer fällt bei fehlenden
+// Daten automatisch auf "bullets" zurück.
+export type SlideLayout =
+  | "bullets"
+  | "headline"        // Eine starke Hauptbotschaft
+  | "model"           // Modell-Diagramm (Knoten + Pfeile in einer Reihe)
+  | "vicious-cycle"   // Teufelskreis (4 Knoten im Kreis)
+  | "before-after"    // Vorher/Nachher Vergleich
+  | "steps"           // Schritt-für-Schritt-Übung
+  | "question";       // Reflexionsfrage mit großer Aufmachung
+
+export interface SlideLayoutData {
+  // headline / question
+  headline?: string;
+  subline?: string;
+  // model
+  nodes?: { label: string; description?: string }[];
+  // vicious-cycle
+  centerLabel?: string;
+  cycleNodes?: { label: string; description?: string }[];
+  // before-after
+  before?: { title: string; items: string[] };
+  after?: { title: string; items: string[] };
+  // steps
+  steps?: { title: string; description?: string }[];
+}
+
 export interface Slide {
   id: string;
   title: string;
   bullets: string[];
   notes?: string;
+  layout?: SlideLayout;
+  layoutData?: SlideLayoutData;
+  iconKey?: string; // Symbol-Key (siehe slideIcons.ts)
 }
 
 export interface AppSetting {

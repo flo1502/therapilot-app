@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const MODEL = "google/gemini-2.5-flash";
+const MODEL_SLIDES = "openai/gpt-5"; // Slide-Generierung profitiert stark von Reasoning
 
 function tool(name: string, description: string, parameters: any) {
   return { type: "function", function: { name, description, parameters } };
@@ -58,37 +59,111 @@ function buildRequest(task: string, payload: any, pseudo?: string) {
   }
 
   if (task === "personalize-slides") {
+    const slideCount = payload.slideCount ?? 6;
     return {
       messages: [
         { role: "system", content: baseSystem },
         {
           role: "user",
           content:
-            `Personalisiere ein Psychoedukations-Slidedeck zum Thema "${payload.topic}". ` +
-            `Therapieansatz: ${payload.approach ?? "—"}. ` +
+            `Erstelle ein psychoedukatives Slidedeck zum Thema "${payload.topic}" für eine:n Patient:in.\n\n` +
+            `Therapieansatz: ${payload.approach ?? "—"}.\n` +
             `Patient:in (pseudonymisiert): Altersgruppe ${payload.ageGroup ?? "—"}, ` +
-            `Therapieziele: ${payload.goals ?? "—"}, Diagnosen: ${(payload.diagnoses ?? []).join(", ") || "—"}. ` +
-            `Verwende ${payload.slideCount ?? 6} Slides. Sprache: einfach, empathisch, deutsch. ` +
+            `Therapieziele: ${payload.goals ?? "—"}, Diagnosen: ${(payload.diagnoses ?? []).join(", ") || "—"}.\n` +
+            `Anzahl inhaltlicher Slides: ${slideCount}.\n\n` +
+            `WICHTIG – DIDAKTIK:\n` +
+            `• Vermeide reine Bullet-Wüsten. Nutze für jede Folie das passende Layout.\n` +
+            `• Layouts: "headline" (eine zentrale Botschaft, kurz & prägnant), "model" (3-5 Schlüsselbegriffe nebeneinander mit Kurzerklärung), ` +
+            `"vicious-cycle" (4 Knoten im Kreis – z.B. Auslöser → Gedanke → Körperreaktion → Verhalten), ` +
+            `"before-after" (Vorher/Nachher oder ungesund/gesund), "steps" (3-5 konkrete Schritte einer Übung), ` +
+            `"question" (Reflexionsfrage zum Innehalten), "bullets" (nur wenn nichts anderes passt, max. 4 Bullets).\n` +
+            `• Empfohlener Aufbau: Slide 1 "headline" (Einstieg), 1-2 "model" oder "vicious-cycle" (Erklärung), ` +
+            `1 "before-after" oder "steps" (Anwendung), 1 "question" (Reflexion).\n` +
+            `• Sprache: einfach, empathisch, deutsch, Sie-Form/neutral.\n` +
+            `• Texte kurz: Bullets max. 12 Wörter, Headlines max. 10 Wörter, Beschreibungen max. 15 Wörter.\n` +
+            `• Sprechernotizen ("notes") für die Therapeut:in ausführlicher.\n` +
+            `• Verwende für jede Folie einen passenden iconKey aus: ` +
+            `brain, heart, compass, breath, scale, lightbulb, target, leaf, sun, cycle, steps, question, shield, hands.\n\n` +
             (payload.templateOutline
-              ? `Orientiere dich an dieser Template-Struktur, passe Beispiele an: ${JSON.stringify(payload.templateOutline)}`
+              ? `Template-Orientierung (Inhalte anpassen, Layout neu wählen): ${JSON.stringify(payload.templateOutline)}`
               : ""),
         },
       ],
       tools: [
-        tool("return_deck", "Liefert ein personalisiertes Slidedeck.", {
+        tool("return_deck", "Liefert ein didaktisch reiches Slidedeck.", {
           type: "object",
           properties: {
-            title: { type: "string" },
+            title: { type: "string", description: "Deck-Titel, max. 8 Wörter." },
             slides: {
               type: "array",
+              minItems: 3,
               items: {
                 type: "object",
                 properties: {
-                  title: { type: "string" },
-                  bullets: { type: "array", items: { type: "string" } },
+                  title: { type: "string", description: "Slide-Titel, max. 8 Wörter." },
+                  layout: {
+                    type: "string",
+                    enum: ["headline", "model", "vicious-cycle", "before-after", "steps", "question", "bullets"],
+                  },
+                  iconKey: {
+                    type: "string",
+                    enum: ["brain", "heart", "compass", "breath", "scale", "lightbulb", "target", "leaf", "sun", "cycle", "steps", "question", "shield", "hands"],
+                  },
+                  bullets: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Bei layout='bullets': Hauptinhalte. Sonst: 1-3 Punkte als Kurz-Zusammenfassung/Fallback.",
+                  },
+                  headline: { type: "string", description: "Bei 'headline'/'question': zentrale Aussage." },
+                  subline: { type: "string", description: "Optionaler Untertitel." },
+                  nodes: {
+                    type: "array",
+                    description: "Bei 'model': 3-5 Knoten.",
+                    items: {
+                      type: "object",
+                      properties: { label: { type: "string" }, description: { type: "string" } },
+                      required: ["label"],
+                      additionalProperties: false,
+                    },
+                  },
+                  centerLabel: { type: "string", description: "Bei 'vicious-cycle': Begriff in der Mitte." },
+                  cycleNodes: {
+                    type: "array",
+                    description: "Bei 'vicious-cycle': genau 4 Knoten.",
+                    items: {
+                      type: "object",
+                      properties: { label: { type: "string" }, description: { type: "string" } },
+                      required: ["label"],
+                      additionalProperties: false,
+                    },
+                  },
+                  before: {
+                    type: "object",
+                    description: "Bei 'before-after': linke Seite.",
+                    properties: { title: { type: "string" }, items: { type: "array", items: { type: "string" } } },
+                    required: ["title", "items"],
+                    additionalProperties: false,
+                  },
+                  after: {
+                    type: "object",
+                    description: "Bei 'before-after': rechte Seite.",
+                    properties: { title: { type: "string" }, items: { type: "array", items: { type: "string" } } },
+                    required: ["title", "items"],
+                    additionalProperties: false,
+                  },
+                  steps: {
+                    type: "array",
+                    description: "Bei 'steps': 3-5 Schritte.",
+                    items: {
+                      type: "object",
+                      properties: { title: { type: "string" }, description: { type: "string" } },
+                      required: ["title"],
+                      additionalProperties: false,
+                    },
+                  },
                   notes: { type: "string", description: "Sprechernotizen für Therapeut:in." },
                 },
-                required: ["title", "bullets"],
+                required: ["title", "layout", "bullets"],
                 additionalProperties: false,
               },
             },
@@ -186,11 +261,12 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY fehlt");
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
+    const model = task === "personalize-slides" ? MODEL_SLIDES : MODEL;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, ...reqBody }),
+      body: JSON.stringify({ model, ...reqBody }),
     });
 
     if (resp.status === 429) {

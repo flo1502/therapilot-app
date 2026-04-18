@@ -106,52 +106,151 @@ function addContentSlide(pptx: PptxGenJS, slide: Slide, meta: Meta) {
     fontFace: FONT_BODY, fontSize: 11, color: COLOR.accent, bold: true, charSpacing: 2,
   });
 
+  // Symbol-Glyph als Akzent (nutzt Unicode statt SVG)
+  const glyphMap: Record<string, string> = {
+    brain: "🧠", heart: "♥", compass: "✦", breath: "≋", scale: "⚖", lightbulb: "✦",
+    target: "◎", leaf: "❀", sun: "☀", cycle: "↻", steps: "▤", question: "?", shield: "◈", hands: "✿",
+  };
+  const glyph = slide.iconKey ? (glyphMap[slide.iconKey] ?? "") : "";
+  if (glyph) {
+    s.addShape("ellipse", { x: 8.9, y: 0.4, w: 0.6, h: 0.6, fill: { color: COLOR.accentSoft }, line: { color: COLOR.accent, width: 1 } });
+    s.addText(glyph, { x: 8.9, y: 0.4, w: 0.6, h: 0.6, fontFace: FONT_TITLE, fontSize: 22, color: COLOR.accentDeep, align: "center", valign: "middle" });
+  }
+
   s.addText(slide.title, {
-    x: 0.4, y: 0.7, w: 9.0, h: 0.9,
-    fontFace: FONT_TITLE, fontSize: 30, color: COLOR.sageDeep, bold: true, valign: "top",
+    x: 0.4, y: 0.7, w: 8.4, h: 0.9,
+    fontFace: FONT_TITLE, fontSize: 28, color: COLOR.sageDeep, bold: true, valign: "top",
   });
 
-  // dezenter Akzent-Punkt links neben Titel
-  s.addShape("ellipse", { x: 0.4, y: 1.6, w: 0.12, h: 0.12, fill: { color: COLOR.accent }, line: { color: COLOR.accent } });
+  const layout = slide.layout ?? "bullets";
+  const data = slide.layoutData ?? {};
 
-  const bullets = slide.bullets.filter(Boolean);
-
-  // Karten-Layout für 2-4 Bullets, sonst klassische Liste
-  if (bullets.length >= 2 && bullets.length <= 4) {
-    const cardW = (9.0 - (bullets.length - 1) * 0.2) / bullets.length;
-    bullets.forEach((b, i) => {
-      const x = 0.4 + i * (cardW + 0.2);
-      s.addShape("roundRect", {
-        x, y: 2.0, w: cardW, h: 2.8,
-        fill: { color: COLOR.sageSoft }, line: { color: COLOR.sage, width: 0.75 }, rectRadius: 0.1,
+  if (layout === "headline" && (data.headline || slide.bullets[0])) {
+    s.addText(`„${data.headline ?? slide.bullets[0]}"`, {
+      x: 0.6, y: 2.1, w: 8.8, h: 1.8,
+      fontFace: FONT_TITLE, fontSize: 36, color: COLOR.sageDeep, bold: true, align: "center", valign: "middle",
+    });
+    if (data.subline) {
+      s.addText(data.subline, {
+        x: 0.6, y: 4.0, w: 8.8, h: 0.6,
+        fontFace: FONT_BODY, fontSize: 16, italic: true, color: COLOR.inkSoft, align: "center",
       });
-      s.addShape("ellipse", {
-        x: x + cardW / 2 - 0.25, y: 2.2, w: 0.5, h: 0.5,
-        fill: { color: COLOR.accent }, line: { color: COLOR.accent },
+    }
+  } else if (layout === "question") {
+    s.addText("?", {
+      x: 0.6, y: 1.7, w: 8.8, h: 1.0,
+      fontFace: FONT_TITLE, fontSize: 64, color: COLOR.accent, bold: true, align: "center",
+    });
+    s.addText(data.headline ?? slide.bullets[0] ?? "", {
+      x: 0.6, y: 2.7, w: 8.8, h: 1.4,
+      fontFace: FONT_TITLE, fontSize: 28, color: COLOR.sageDeep, bold: true, align: "center", valign: "top",
+    });
+    if (data.subline) {
+      s.addText(data.subline, {
+        x: 0.6, y: 4.2, w: 8.8, h: 0.5,
+        fontFace: FONT_BODY, fontSize: 14, italic: true, color: COLOR.inkSoft, align: "center",
       });
-      s.addText(String(i + 1), {
-        x: x + cardW / 2 - 0.25, y: 2.2, w: 0.5, h: 0.5,
-        fontFace: FONT_TITLE, fontSize: 18, bold: true, color: COLOR.cream, align: "center", valign: "middle",
+    }
+  } else if (layout === "model" && data.nodes && data.nodes.length > 0) {
+    const nodes = data.nodes.slice(0, 5);
+    const totalW = 8.8;
+    const arrowW = 0.25;
+    const cardW = (totalW - (nodes.length - 1) * arrowW) / nodes.length;
+    nodes.forEach((n, i) => {
+      const x = 0.6 + i * (cardW + arrowW);
+      const y = 2.0;
+      s.addShape("roundRect", { x, y, w: cardW, h: 2.7, fill: { color: COLOR.cream }, line: { color: COLOR.sage, width: 1.5 }, rectRadius: 0.1 });
+      s.addShape("ellipse", { x: x + cardW / 2 - 0.27, y: y + 0.2, w: 0.54, h: 0.54, fill: { color: COLOR.accent }, line: { color: COLOR.accent } });
+      s.addText(String(i + 1), { x: x + cardW / 2 - 0.27, y: y + 0.2, w: 0.54, h: 0.54, fontFace: FONT_TITLE, fontSize: 18, bold: true, color: COLOR.cream, align: "center", valign: "middle" });
+      s.addText(n.label, { x: x + 0.1, y: y + 0.85, w: cardW - 0.2, h: 0.5, fontFace: FONT_BODY, fontSize: 13, bold: true, color: COLOR.sageDeep, align: "center" });
+      if (n.description) {
+        s.addText(n.description, { x: x + 0.15, y: y + 1.4, w: cardW - 0.3, h: 1.2, fontFace: FONT_BODY, fontSize: 10, color: COLOR.inkSoft, align: "center", valign: "top" });
+      }
+      if (i < nodes.length - 1) {
+        s.addShape("rightArrow", { x: x + cardW + 0.02, y: y + 1.25, w: arrowW - 0.04, h: 0.25, fill: { color: COLOR.accent }, line: { color: COLOR.accent } });
+      }
+    });
+  } else if (layout === "vicious-cycle" && data.cycleNodes && data.cycleNodes.length === 4) {
+    const cx = 5.0, cy = 3.4, r = 1.7;
+    const positions = [
+      { angle: -90, ax: 0, ay: -1 },
+      { angle: 0, ax: 1, ay: 0 },
+      { angle: 90, ax: 0, ay: 1 },
+      { angle: 180, ax: -1, ay: 0 },
+    ];
+    data.cycleNodes.forEach((n, i) => {
+      const p = positions[i];
+      const nx = cx + p.ax * r, ny = cy + p.ay * r * 0.9;
+      const w = 2.0, h = 0.85;
+      const x = nx - w / 2, y = ny - h / 2;
+      s.addShape("ellipse", { x, y, w, h, fill: { color: COLOR.cream }, line: { color: COLOR.accent, width: 2 } });
+      s.addText(n.label, { x, y: y + 0.05, w, h: 0.4, fontFace: FONT_BODY, fontSize: 11, bold: true, color: COLOR.sageDeep, align: "center" });
+      if (n.description) {
+        s.addText(n.description, { x, y: y + 0.45, w, h: 0.4, fontFace: FONT_BODY, fontSize: 9, color: COLOR.inkSoft, align: "center" });
+      }
+    });
+    // Pfeile zwischen Knoten (Bogen-Annäherung als Linien)
+    for (let i = 0; i < 4; i++) {
+      const p = positions[i], pn = positions[(i + 1) % 4];
+      const x1 = cx + p.ax * (r - 0.3), y1 = cy + p.ay * (r * 0.9 - 0.3);
+      const x2 = cx + pn.ax * (r - 0.3), y2 = cy + pn.ay * (r * 0.9 - 0.3);
+      s.addShape("line", {
+        x: Math.min(x1, x2), y: Math.min(y1, y2),
+        w: Math.abs(x2 - x1) || 0.01, h: Math.abs(y2 - y1) || 0.01,
+        flipH: x2 < x1, flipV: y2 < y1,
+        line: { color: COLOR.warn, width: 1.5, endArrowType: "triangle" },
       });
-      s.addText(b, {
-        x: x + 0.15, y: 2.85, w: cardW - 0.3, h: 1.85,
-        fontFace: FONT_BODY, fontSize: 14, color: COLOR.ink, align: "center", valign: "top",
-      });
+    }
+    s.addShape("ellipse", { x: cx - 0.7, y: cy - 0.35, w: 1.4, h: 0.7, fill: { color: COLOR.warn }, line: { color: COLOR.warn } });
+    s.addText(data.centerLabel ?? "Kreislauf", { x: cx - 0.7, y: cy - 0.35, w: 1.4, h: 0.7, fontFace: FONT_TITLE, fontSize: 14, bold: true, color: COLOR.cream, align: "center", valign: "middle" });
+  } else if (layout === "before-after" && (data.before || data.after)) {
+    const cardH = 2.7;
+    if (data.before) {
+      s.addShape("roundRect", { x: 0.4, y: 2.0, w: 4.4, h: cardH, fill: { color: COLOR.warnSoft }, line: { color: COLOR.warn, width: 1.5 }, rectRadius: 0.1 });
+      s.addText(data.before.title, { x: 0.6, y: 2.15, w: 4.0, h: 0.5, fontFace: FONT_BODY, fontSize: 16, bold: true, color: COLOR.warn });
+      const items = data.before.items.map(it => ({ text: it, options: { bullet: { code: "2715" }, fontFace: FONT_BODY, fontSize: 13, color: COLOR.ink, paraSpaceAfter: 6 } }));
+      s.addText(items as any, { x: 0.7, y: 2.7, w: 4.0, h: 1.9, valign: "top" });
+    }
+    if (data.after) {
+      s.addShape("roundRect", { x: 5.2, y: 2.0, w: 4.4, h: cardH, fill: { color: COLOR.sageSoft }, line: { color: COLOR.sage, width: 1.5 }, rectRadius: 0.1 });
+      s.addText(data.after.title, { x: 5.4, y: 2.15, w: 4.0, h: 0.5, fontFace: FONT_BODY, fontSize: 16, bold: true, color: COLOR.sageDeep });
+      const items = data.after.items.map(it => ({ text: it, options: { bullet: { code: "2713" }, fontFace: FONT_BODY, fontSize: 13, color: COLOR.ink, paraSpaceAfter: 6 } }));
+      s.addText(items as any, { x: 5.5, y: 2.7, w: 4.0, h: 1.9, valign: "top" });
+    }
+    s.addShape("rightArrow", { x: 4.85, y: 3.2, w: 0.3, h: 0.3, fill: { color: COLOR.accent }, line: { color: COLOR.accent } });
+  } else if (layout === "steps" && data.steps && data.steps.length > 0) {
+    const steps = data.steps.slice(0, 5);
+    const stepH = Math.min(0.7, 2.8 / steps.length);
+    const gap = 0.05;
+    steps.forEach((st, i) => {
+      const y = 1.9 + i * (stepH + gap);
+      s.addShape("roundRect", { x: 0.6, y, w: 8.8, h: stepH, fill: { color: COLOR.cream }, line: { color: COLOR.sage, width: 0.75 }, rectRadius: 0.05 });
+      s.addShape("ellipse", { x: 0.7, y: y + 0.05, w: stepH - 0.1, h: stepH - 0.1, fill: { color: COLOR.accent }, line: { color: COLOR.accent } });
+      s.addText(String(i + 1), { x: 0.7, y: y + 0.05, w: stepH - 0.1, h: stepH - 0.1, fontFace: FONT_TITLE, fontSize: 14, bold: true, color: COLOR.cream, align: "center", valign: "middle" });
+      s.addText(st.title, { x: 0.7 + stepH + 0.1, y: y + 0.05, w: 4.0, h: stepH - 0.1, fontFace: FONT_BODY, fontSize: 13, bold: true, color: COLOR.sageDeep, valign: "middle" });
+      if (st.description) {
+        s.addText(st.description, { x: 4.9, y: y + 0.05, w: 4.4, h: stepH - 0.1, fontFace: FONT_BODY, fontSize: 11, color: COLOR.inkSoft, valign: "middle" });
+      }
     });
   } else {
-    const bulletText = bullets.map(b => ({
-      text: b,
-      options: {
-        bullet: { code: "25CF" },
-        paraSpaceAfter: 10,
-        fontFace: FONT_BODY,
-        fontSize: 18,
-        color: COLOR.ink,
-      },
-    }));
-    s.addText(bulletText as any, {
-      x: 0.7, y: 1.8, w: 8.6, h: 3.2, valign: "top", color: COLOR.ink, paraSpaceAfter: 10,
-    });
+    // Fallback: Bullet- oder Karten-Layout
+    const bullets = slide.bullets.filter(Boolean);
+    if (bullets.length >= 2 && bullets.length <= 4) {
+      const cardW = (8.8 - (bullets.length - 1) * 0.2) / bullets.length;
+      bullets.forEach((b, i) => {
+        const x = 0.6 + i * (cardW + 0.2);
+        s.addShape("roundRect", { x, y: 2.0, w: cardW, h: 2.6, fill: { color: COLOR.sageSoft }, line: { color: COLOR.sage, width: 0.75 }, rectRadius: 0.1 });
+        s.addShape("ellipse", { x: x + cardW / 2 - 0.22, y: 2.2, w: 0.44, h: 0.44, fill: { color: COLOR.accent }, line: { color: COLOR.accent } });
+        s.addText(String(i + 1), { x: x + cardW / 2 - 0.22, y: 2.2, w: 0.44, h: 0.44, fontFace: FONT_TITLE, fontSize: 16, bold: true, color: COLOR.cream, align: "center", valign: "middle" });
+        s.addText(b, { x: x + 0.15, y: 2.8, w: cardW - 0.3, h: 1.7, fontFace: FONT_BODY, fontSize: 13, color: COLOR.ink, align: "center", valign: "top" });
+      });
+    } else {
+      const bulletText = bullets.map(b => ({
+        text: b,
+        options: { bullet: { code: "25CF" }, paraSpaceAfter: 10, fontFace: FONT_BODY, fontSize: 17, color: COLOR.ink },
+      }));
+      s.addText(bulletText as any, { x: 0.7, y: 1.9, w: 8.6, h: 3.2, valign: "top", color: COLOR.ink, paraSpaceAfter: 10 });
+    }
   }
 
   if (slide.notes) s.addNotes(slide.notes);

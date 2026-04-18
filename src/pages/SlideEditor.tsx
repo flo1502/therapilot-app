@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Save, Plus, Trash2, Play, FileDown, ChevronUp, ChevronDown, Presentation } from "lucide-react";
 import jsPDF from "jspdf";
 import { exportDeckAsPPTX } from "@/lib/pptxExport";
+import { SlideRenderer } from "@/components/SlideRenderer";
 
 export default function SlideEditor() {
   const { id } = useParams();
@@ -98,6 +99,12 @@ export default function SlideEditor() {
                 <Button size="icon" variant="ghost" onClick={() => delSlide(i)}><Trash2 className="size-4" /></Button>
               </div>
             </div>
+            {s.layout && s.layout !== "bullets" && (
+              <div className="mb-3 rounded-xl border border-dashed border-border bg-muted/30 p-4 overflow-x-auto">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Vorschau · Layout: {s.layout}</div>
+                <SlideRenderer slide={s} variant="preview" />
+              </div>
+            )}
             <Input value={s.title} onChange={e => updSlide(i, { title: e.target.value })} className="font-display mb-3" />
             <Textarea
               rows={Math.max(3, s.bullets.length)}
