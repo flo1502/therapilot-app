@@ -140,7 +140,7 @@ function addSORKC(pptx: PptxGenJS, meta: { deckTitle: string; idx: number; total
     s.addText(it.t, { x, y: y + 0.75, w: boxW, h: 0.35, fontFace: FONT_BODY, fontSize: 13, bold: true, color: COLOR.sageDeep, align: "center" });
     s.addText(it.d, { x: x + 0.05, y: y + 1.1, w: boxW - 0.1, h: 0.55, fontFace: FONT_BODY, fontSize: 9, color: COLOR.inkSoft, align: "center", valign: "top" });
     if (i < labels.length - 1) {
-      s.addShape("rightTriangle", { x: x + boxW + gap - 0.04, y: y + boxH / 2 - 0.06, w: 0.08, h: 0.12, fill: { color: COLOR.sage }, line: { color: COLOR.sage }, rotate: 90 });
+      s.addShape("triangle", { x: x + boxW + gap - 0.04, y: y + boxH / 2 - 0.06, w: 0.08, h: 0.12, fill: { color: COLOR.sage }, line: { color: COLOR.sage }, rotate: 90 });
     }
   });
 
@@ -218,7 +218,7 @@ function addABCModell(pptx: PptxGenJS, meta: { deckTitle: string; idx: number; t
     s.addText(it.t, { x, y: 3.05, w: 2.7, h: 0.4, fontFace: FONT_BODY, fontSize: 16, bold: true, color: COLOR.sageDeep, align: "center" });
     s.addText(it.d, { x: x + 0.15, y: 3.5, w: 2.4, h: 0.8, fontFace: FONT_BODY, fontSize: 12, color: COLOR.inkSoft, align: "center", valign: "top" });
     if (i < items.length - 1) {
-      s.addShape("rightTriangle", { x: x + 2.78, y: 3.05, w: 0.18, h: 0.3, fill: { color: COLOR.accent }, line: { color: COLOR.accent }, rotate: 90 });
+      s.addShape("triangle", { x: x + 2.78, y: 3.05, w: 0.18, h: 0.3, fill: { color: COLOR.accent }, line: { color: COLOR.accent }, rotate: 90 });
     }
   });
   addFooter(s, meta.deckTitle, meta.idx, meta.total, meta.pseudonym);
