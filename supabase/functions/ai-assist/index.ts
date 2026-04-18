@@ -261,11 +261,12 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY fehlt");
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
+    const model = task === "personalize-slides" ? MODEL_SLIDES : MODEL;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, ...reqBody }),
+      body: JSON.stringify({ model, ...reqBody }),
     });
 
     if (resp.status === 429) {
