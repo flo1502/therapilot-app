@@ -8,8 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, Plus, Trash2, Play, FileDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Save, Plus, Trash2, Play, FileDown, ChevronUp, ChevronDown, Presentation } from "lucide-react";
 import jsPDF from "jspdf";
+import { exportDeckAsPPTX } from "@/lib/pptxExport";
 
 export default function SlideEditor() {
   const { id } = useParams();
