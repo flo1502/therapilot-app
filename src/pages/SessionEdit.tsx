@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Save, Sparkles, Mic, MicOff } from "lucide-react";
 import { callAi, StructuredSession } from "@/lib/ai/provider";
 import { useLiveQuery } from "dexie-react-hooks";
+import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
 
 const FORMATS: SessionFormat[] = ["SOAP", "VT-Verlauf", "Frei"];
 
@@ -148,8 +149,8 @@ export default function SessionEdit() {
         </div>
       </CardContent></Card>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card><CardContent className="p-5">
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-1"><CardContent className="p-5">
           <div className="flex items-center justify-between mb-2">
             <Label className="text-sm font-medium">Roh-Notiz</Label>
             <Button type="button" size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
@@ -164,7 +165,7 @@ export default function SessionEdit() {
           </Button>
         </CardContent></Card>
 
-        <Card><CardContent className="p-5">
+        <Card className="lg:col-span-1"><CardContent className="p-5">
           <Label className="text-sm font-medium">Strukturierte Dokumentation</Label>
           {s.structured ? (
             <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
@@ -176,6 +177,15 @@ export default function SessionEdit() {
             </div>
           )}
         </CardContent></Card>
+
+        <div className="lg:col-span-1">
+          <SessionSlidesPanel
+            patientId={s.patientId}
+            approach={allPatients?.find(p => p.id === s.patientId)?.approach}
+            goals={allPatients?.find(p => p.id === s.patientId)?.goals}
+            notesExcerpt={s.rawNotes}
+          />
+        </div>
       </div>
     </>
   );
