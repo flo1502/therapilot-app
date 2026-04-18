@@ -101,6 +101,49 @@ function buildRequest(task: string, payload: any, pseudo?: string) {
     };
   }
 
+  if (task === "suggest-slides") {
+    return {
+      messages: [
+        { role: "system", content: baseSystem },
+        {
+          role: "user",
+          content:
+            `Wähle die 2-3 für den aktuellen Behandlungsschritt am besten passenden Folien aus den verfügbaren Quellen aus. ` +
+            `Behandlungsschritt: "${payload.stepLabel}" — ${payload.stepDescription ?? ""}. ` +
+            `Therapieansatz: ${payload.approach ?? "—"}. ` +
+            `Therapieziele: ${payload.goals ?? "—"}. ` +
+            `Aktuelle Sitzungsnotiz (Auszug, pseudonymisiert): ${(payload.notesExcerpt ?? "").slice(0, 800)}\n\n` +
+            `Verfügbare Folien (Kandidaten):\n${JSON.stringify(payload.candidates ?? [], null, 0)}\n\n` +
+            `Gib genau 2-3 Vorschläge zurück. Bevorzuge personalisierte Patienten-Decks (source="deck") wenn vorhanden und passend.`,
+        },
+      ],
+      tools: [
+        tool("return_suggestions", "Liefert 2-3 Folien-Vorschläge.", {
+          type: "object",
+          properties: {
+            suggestions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  source: { type: "string", enum: ["template", "deck"] },
+                  sourceId: { type: "string" },
+                  slideIndex: { type: "number" },
+                  reason: { type: "string", description: "Kurze fachliche Begründung (1 Satz)." },
+                },
+                required: ["source", "sourceId", "slideIndex", "reason"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["suggestions"],
+          additionalProperties: false,
+        }),
+      ],
+      tool_choice: { type: "function", function: { name: "return_suggestions" } },
+    };
+  }
+
   if (task === "session-prep") {
     return {
       messages: [

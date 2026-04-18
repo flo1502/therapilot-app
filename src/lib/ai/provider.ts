@@ -5,7 +5,18 @@
 import { supabase } from "@/integrations/supabase/client";
 import { pseudonymize } from "@/lib/pseudonymize";
 
-export type AiTask = "structure-session" | "personalize-slides" | "session-prep";
+export type AiTask = "structure-session" | "personalize-slides" | "session-prep" | "suggest-slides";
+
+export interface SuggestedSlideRef {
+  source: "template" | "deck";
+  sourceId: string;       // templateId oder deckId
+  slideIndex: number;     // Index innerhalb des Quell-Decks/Templates
+  reason: string;         // kurze Begründung warum diese Folie passt
+}
+
+export interface SuggestedSlides {
+  suggestions: SuggestedSlideRef[];
+}
 
 export interface AiRequest {
   task: AiTask;
