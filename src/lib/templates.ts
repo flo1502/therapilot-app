@@ -1,6 +1,8 @@
 // Vorgefertigte Therapie-Templates (Slide-Sets) – mit visuellen Layouts.
 import type { SlideLayout, SlideLayoutData } from "@/lib/db";
 import type { IconKey } from "@/lib/slideIcons";
+import emotionalesNetzwerkImg from "@/assets/emotionales-netzwerk.jpg";
+import gehirnAmygdalaImg from "@/assets/gehirn-amygdala.jpg";
 
 export interface TemplateSlide {
   title: string;
@@ -485,6 +487,38 @@ export const TEMPLATES: Template[] = [
         bullets: ["Nicht: Gefühle wegmachen", "Sondern: bewusst damit umgehen", "Intensität & Dauer beeinflussen"],
         layout: "headline", iconKey: "scale",
         layoutData: { headline: "Regulieren heißt nicht unterdrücken.", subline: "Es heißt: fühlen können, ohne überflutet zu werden." },
+      },
+      {
+        title: "Das emotionale Netzwerk",
+        bullets: [
+          "Emotionen entstehen im ganzen Körper – nicht nur im Kopf",
+          "Kopf, Herz und Bauch sind ständig verbunden",
+          "Jede Emotion hat einen Ort, an dem du sie spürst",
+          "Wahrnehmen ist der erste Schritt zur Regulation",
+        ],
+        notes: "Bild zeigen und Patient:in fragen: 'Wo spürst du gerade was?' – körperliche Verortung üben.",
+        layout: "image", iconKey: "heart",
+        layoutData: {
+          imageSrc: emotionalesNetzwerkImg,
+          imageAlt: "Stilisierte Figur mit den drei Zentren Kopf, Herz, Bauch und vier umgebenden Emotionen",
+          imageCaption: "Kopf, Herz, Bauch – verbunden durch Nervensystem und Atem.",
+        },
+      },
+      {
+        title: "Das Gehirn unter Stress",
+        bullets: [
+          "Amygdala = Alarmzentrale – schaltet bei Gefahr blitzschnell an",
+          "Präfrontaler Kortex = Vernunft – wird unter Stress 'offline'",
+          "Hippocampus = Gedächtnis – ordnet Erfahrungen ein",
+          "Skills holen den Kortex zurück online",
+        ],
+        notes: "Erklären: 'Wenn die Amygdala feuert, schaltet das Denken ab. Skills sind Werkzeuge, die das Denken wieder anschalten.'",
+        layout: "image", iconKey: "brain",
+        layoutData: {
+          imageSrc: gehirnAmygdalaImg,
+          imageAlt: "Querschnitt eines Gehirns mit hervorgehobener Amygdala, Hippocampus und präfrontalem Kortex",
+          imageCaption: "Bei Stress übernimmt die Amygdala – mit Skills aktivieren wir den präfrontalen Kortex zurück.",
+        },
       },
       {
         title: "Das Toleranzfenster",

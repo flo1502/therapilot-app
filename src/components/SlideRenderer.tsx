@@ -152,7 +152,30 @@ export function SlideRenderer({ slide, variant = "preview" }: Props) {
         </div>
       )}
 
-      {(layout === "bullets" || (!data.headline && !data.nodes && !data.cycleNodes && !data.before && !data.after && !data.steps && layout !== "headline" && layout !== "question")) && (
+      {layout === "image" && data.imageSrc && (
+        <figure className="flex flex-col items-center">
+          <img
+            src={data.imageSrc}
+            alt={data.imageAlt ?? slide.title}
+            loading="lazy"
+            className={`rounded-2xl border border-border bg-card object-contain w-full ${isPresent ? "max-h-[70vh]" : "max-h-[420px]"}`}
+          />
+          {data.imageCaption && (
+            <figcaption className={`mt-3 text-center italic text-muted-foreground ${isPresent ? "text-lg" : "text-sm"}`}>
+              {data.imageCaption}
+            </figcaption>
+          )}
+          {slide.bullets.length > 0 && (
+            <ul className={`mt-5 space-y-2 self-start ${isPresent ? "text-xl" : "text-base"}`}>
+              {slide.bullets.map((b, i) => (
+                <li key={i} className="flex gap-3"><span className="text-accent shrink-0">•</span><span>{b}</span></li>
+              ))}
+            </ul>
+          )}
+        </figure>
+      )}
+
+      {(layout === "bullets" || (!data.headline && !data.nodes && !data.cycleNodes && !data.before && !data.after && !data.steps && !data.imageSrc && layout !== "headline" && layout !== "question" && layout !== "image")) && (
         <ul className={`space-y-3 ${isPresent ? "text-xl md:text-2xl" : "text-base"}`}>
           {slide.bullets.map((b, i) => (
             <li key={i} className="flex gap-3"><span className="text-accent shrink-0">•</span><span>{b}</span></li>

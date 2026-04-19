@@ -16,6 +16,7 @@ const LAYOUT_LABEL: Record<string, string> = {
   steps: "Schritte",
   question: "Reflexionsfrage",
   bullets: "Stichpunkte",
+  image: "Visualisierung",
 };
 
 export default function TemplateDetail() {
