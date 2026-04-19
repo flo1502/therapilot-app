@@ -1,6 +1,8 @@
 // Vorgefertigte Therapie-Templates (Slide-Sets) – mit visuellen Layouts.
 import type { SlideLayout, SlideLayoutData } from "@/lib/db";
 import type { IconKey } from "@/lib/slideIcons";
+import emotionalesNetzwerkImg from "@/assets/emotionales-netzwerk.jpg";
+import gehirnAmygdalaImg from "@/assets/gehirn-amygdala.jpg";
 
 export interface TemplateSlide {
   title: string;

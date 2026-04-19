@@ -56,7 +56,8 @@ export type SlideLayout =
   | "vicious-cycle"   // Teufelskreis (4 Knoten im Kreis)
   | "before-after"    // Vorher/Nachher Vergleich
   | "steps"           // Schritt-für-Schritt-Übung
-  | "question";       // Reflexionsfrage mit großer Aufmachung
+  | "question"        // Reflexionsfrage mit großer Aufmachung
+  | "image";          // Visualisierungs-Bild (Psychoedukation, griffbereit)
 
 export interface SlideLayoutData {
   // headline / question
@@ -72,6 +73,10 @@ export interface SlideLayoutData {
   after?: { title: string; items: string[] };
   // steps
   steps?: { title: string; description?: string }[];
+  // image
+  imageSrc?: string;
+  imageAlt?: string;
+  imageCaption?: string;
 }
 
 export interface Slide {
