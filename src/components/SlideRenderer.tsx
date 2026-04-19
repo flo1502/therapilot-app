@@ -78,7 +78,7 @@ export function SlideRenderer({ slide, variant = "preview" }: Props) {
       )}
 
       {layout === "vicious-cycle" && data.cycleNodes && data.cycleNodes.length === 4 && (
-        <div className={`relative mx-auto ${isPresent ? "w-[560px] h-[420px]" : "w-[420px] h-[320px]"}`}>
+        <div className={`relative mx-auto ${isPresent ? "w-[560px] h-[420px]" : "w-full max-w-[380px] h-[300px]"}`}>
           {/* Zentrum */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/90 text-destructive-foreground flex items-center justify-center font-display"
                style={{ width: isPresent ? 130 : 100, height: isPresent ? 130 : 100, fontSize: isPresent ? 22 : 16 }}>

@@ -51,13 +51,15 @@ export default function TemplateDetail() {
           };
           const layoutKey = s.layout ?? "bullets";
           return (
-            <Card key={i} className="overflow-hidden">
+            <Card key={i} className="overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-5 py-2.5 border-b border-border bg-muted/30">
                 <div className="text-xs text-muted-foreground">Slide {i + 1} / {t.slides.length}</div>
                 <Badge variant="outline" className="text-xs">{LAYOUT_LABEL[layoutKey] ?? layoutKey}</Badge>
               </div>
-              <CardContent className="p-6">
-                <SlideRenderer slide={slide} variant="preview" />
+              <CardContent className="p-5 overflow-x-auto">
+                <div className="min-w-0">
+                  <SlideRenderer slide={slide} variant="preview" />
+                </div>
               </CardContent>
             </Card>
           );
