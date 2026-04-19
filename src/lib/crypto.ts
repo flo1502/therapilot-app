@@ -81,10 +81,28 @@ export function lock() {
   cachedSalt = null;
 }
 
+async function ensureKey(): Promise<CryptoKey> {
+  if (cachedKey) return cachedKey;
+  const AUTO_PWD_KEY = "therapilot.autopwd";
+  let pwd = localStorage.getItem(AUTO_PWD_KEY);
+  if (!pwd) {
+    const rnd = crypto.getRandomValues(new Uint8Array(32));
+    pwd = b64encode(rnd);
+    localStorage.setItem(AUTO_PWD_KEY, pwd);
+  }
+  if (!isEncryptionInitialized()) {
+    await initializeEncryption(pwd);
+  } else {
+    await unlock(pwd);
+  }
+  if (!cachedKey) throw new Error("Konnte Schlüssel nicht initialisieren.");
+  return cachedKey;
+}
+
 export async function encryptString(plain: string): Promise<string> {
-  if (!cachedKey) throw new Error("Daten sind verschlüsselt – bitte mit Master-Passwort entsperren.");
+  const key = await ensureKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, cachedKey, enc.encode(plain) as BufferSource);
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, enc.encode(plain) as BufferSource);
   const out = new Uint8Array(iv.length + ct.byteLength);
   out.set(iv, 0);
   out.set(new Uint8Array(ct), iv.length);
@@ -92,11 +110,11 @@ export async function encryptString(plain: string): Promise<string> {
 }
 
 export async function decryptString(payload: string): Promise<string> {
-  if (!cachedKey) throw new Error("locked");
+  const key = await ensureKey();
   const data = b64decode(payload);
   const iv = data.slice(0, 12);
   const ct = data.slice(12);
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv as BufferSource }, cachedKey, ct as BufferSource);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, ct as BufferSource);
   return dec.decode(pt);
 }
 
