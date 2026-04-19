@@ -815,6 +815,186 @@ export const TEMPLATES: Template[] = [
       },
     ],
   },
+  {
+    id: "fallkonzept-depression-vt",
+    title: "Fallkonzept Depression (VT) – Vollstruktur",
+    approach: "KVT",
+    category: "Modell",
+    tags: ["Fallkonzeption", "Depression", "SORKC", "Becks Triade", "Schemata"],
+    description: "Strukturiertes VT-Fallkonzept Depression in 15 didaktischen Slides – als Gerüst für Diagnostik, gemeinsame Erarbeitung mit Patient:innen oder Supervision.",
+    slides: [
+      {
+        title: "Fallkonzept Depression",
+        bullets: ["Strukturiertes Verstehen als Grundlage der Behandlung"],
+        layout: "headline", iconKey: "compass",
+        layoutData: {
+          headline: "Vom Symptom zum Verständnis.",
+          subline: "Ein VT-Fallkonzept macht sichtbar, was Depression ausgelöst hat – und was sie aufrechterhält.",
+        },
+      },
+      {
+        title: "1. Diagnostik & Störungsbild",
+        bullets: ["ICD-Diagnose", "Schweregrad", "Episodenverlauf", "Leit- & Zusatzsymptome"],
+        layout: "steps", iconKey: "lightbulb",
+        layoutData: { steps: [
+          { title: "Diagnose nach ICD-10/11", description: "z. B. F32.1 mittelgradige depressive Episode." },
+          { title: "Schweregrad", description: "leicht / mittel / schwer – nach Symptomanzahl & Funktionsniveau." },
+          { title: "Episodenverlauf", description: "Erstepisode oder rezidivierend? Bisherige Dauer, Remissionen." },
+          { title: "Leitsymptome", description: "Gedrückte Stimmung, Antriebsmangel, Interessenverlust." },
+          { title: "Zusatzsymptome", description: "Schlaf, Appetit, Konzentration, Schuld, Suizidgedanken (immer erfragen!)." },
+        ] },
+      },
+      {
+        title: "2. Aktuelle Problemlage",
+        bullets: [
+          "Hauptbeschwerden aus Patient:innen-Sicht",
+          "Alltagseinschränkungen: Arbeit, soziale Kontakte, Haushalt",
+          "Emotionale Lage: Leere, Hoffnungslosigkeit, Überforderung",
+          "Körperliche Symptome: Müdigkeit, Schlaf-Wach-Störung, Spannung",
+          "Akute Auslöser (falls vorhanden)",
+        ],
+        layout: "bullets", iconKey: "heart",
+      },
+      {
+        title: "3. Biografische Vulnerabilität",
+        bullets: ["Bindung", "Lerngeschichte", "Persönlichkeit", "Frühere Episoden", "Ressourcen"],
+        layout: "steps", iconKey: "leaf",
+        layoutData: { steps: [
+          { title: "Kindheit & Bindung", description: "Emotionale Verfügbarkeit der Bezugspersonen, Sicherheit, Brüche." },
+          { title: "Lerngeschichte", description: "Verstärkungsmuster: Wofür gab es Anerkennung – wofür Strafe?" },
+          { title: "Persönlichkeitszüge", description: "Perfektionismus, Selbstkritik, Harmoniebedürfnis." },
+          { title: "Frühere Episoden", description: "Vorbehandlungen, Auslöser, was hat damals geholfen?" },
+          { title: "Biografische Ressourcen", description: "Stabile Beziehungen, Erfolge, Bewältigungserfahrungen." },
+        ] },
+      },
+      {
+        title: "4. Auslösende Faktoren (Trigger)",
+        bullets: ["Lebensereignisse", "Chronischer Stress", "Überforderung", "Körperliche Faktoren", "Kognitive Trigger"],
+        layout: "model", iconKey: "target",
+        layoutData: { nodes: [
+          { label: "Lebensereignis", description: "Verlust, Trennung, Job" },
+          { label: "Chron. Stress", description: "Dauerbelastung, Konflikte" },
+          { label: "Überforderung", description: "Anforderung > Ressourcen" },
+          { label: "Körperlich", description: "Schlafmangel, Krankheit" },
+          { label: "Kognitiv", description: "Misserfolg, Kritik" },
+        ] },
+      },
+      {
+        title: "5. Aufrechterhaltender Teufelskreis",
+        bullets: ["Negative Gedanken", "Rückzug & Inaktivität", "Verlust positiver Verstärkung", "Niedergeschlagenheit"],
+        layout: "vicious-cycle", iconKey: "cycle",
+        layoutData: {
+          centerLabel: "Depression",
+          cycleNodes: [
+            { label: "Negative Gedanken", description: "'Ich schaffe nichts'" },
+            { label: "Rückzug", description: "Vermeidung, Inaktivität" },
+            { label: "Verstärker-Verlust", description: "weniger positive Erfahrungen" },
+            { label: "Stimmung sinkt", description: "Antrieb & Energie ↓" },
+          ],
+        },
+      },
+      {
+        title: "6. Fünf-Ebenen-Modell der Aufrechterhaltung",
+        bullets: ["Kognition", "Emotion", "Verhalten", "Körper", "Soziales"],
+        layout: "model", iconKey: "brain",
+        layoutData: { nodes: [
+          { label: "Kognition", description: "neg. autom. Gedanken, Verzerrungen" },
+          { label: "Emotion", description: "Niedergeschlagenheit, Taubheit" },
+          { label: "Verhalten", description: "Rückzug, Vermeidung" },
+          { label: "Körper", description: "Müdigkeit, Schlafstörung" },
+          { label: "Sozial", description: "Isolation, weniger Verstärkung" },
+        ] },
+      },
+      {
+        title: "7. Becks kognitive Triade",
+        bullets: ["Negative Sicht auf das Selbst", "Negative Sicht auf die Welt", "Negative Sicht auf die Zukunft"],
+        layout: "model", iconKey: "brain",
+        layoutData: { nodes: [
+          { label: "Selbst", description: "'Ich bin wertlos'" },
+          { label: "Welt", description: "'Niemand mag mich'" },
+          { label: "Zukunft", description: "'Es wird nie besser'" },
+        ] },
+      },
+      {
+        title: "8. Kognitive Schema-Ebenen",
+        bullets: ["Grundannahmen", "Zwischenannahmen", "Automatische Gedanken"],
+        layout: "steps", iconKey: "lightbulb",
+        layoutData: { steps: [
+          { title: "Grundannahmen (Schema)", description: "tief, früh erworben – z. B. 'Ich bin nicht gut genug', 'Ich bin wertlos'." },
+          { title: "Zwischenannahmen", description: "Regeln & Bedingungen – z. B. 'Wenn ich versage, werde ich abgelehnt'." },
+          { title: "Automatische Gedanken", description: "situationsspezifisch – z. B. 'Das schaffe ich eh nicht'." },
+        ] },
+      },
+      {
+        title: "9. SORKC – Verhaltensanalyse",
+        bullets: ["S Stimulus", "O Organismus", "R Reaktion", "K Kontingenz", "C Konsequenz"],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "S – Stimulus", description: "z. B. E-Mail vom Chef, soziale Einladung." },
+          { title: "O – Organismus", description: "Stimmung, Schema 'wertlos', Schlafmangel, Vorerfahrungen." },
+          { title: "R – Reaktion", description: "Gedanke 'Ich versage' · Angst/Leere · Anspannung · Rückzug." },
+          { title: "K – Kontingenz", description: "Kurzfristig: Erleichterung durch Vermeidung." },
+          { title: "C – Konsequenz", description: "Langfristig: Verstärker fehlen, Selbstwert sinkt, Depression bleibt." },
+        ] },
+      },
+      {
+        title: "10. Ressourcen-Landkarte",
+        bullets: ["Persönlich", "Sozial", "Extern", "Frühere Bewältigung"],
+        layout: "model", iconKey: "hands",
+        layoutData: { nodes: [
+          { label: "Persönlich", description: "Intelligenz, Humor, Motivation" },
+          { label: "Sozial", description: "Familie, Freunde, Therapeut:in" },
+          { label: "Extern", description: "Arbeit, Struktur, Wohnen" },
+          { label: "Bewältigung", description: "was hat früher geholfen?" },
+        ] },
+      },
+      {
+        title: "11. Therapieziele – drei Horizonte",
+        bullets: ["Kurzfristig", "Mittelfristig", "Langfristig"],
+        layout: "steps", iconKey: "target",
+        layoutData: { steps: [
+          { title: "Kurzfristig", description: "Aktivierung, Stabilisierung, Suizidalität sichern, Tagesstruktur." },
+          { title: "Mittelfristig", description: "Kognitive Umstrukturierung, Aufbau Verstärker, soziale Reintegration." },
+          { title: "Langfristig", description: "Schema-Arbeit, Selbstwirksamkeit, Rückfallprophylaxe." },
+        ] },
+      },
+      {
+        title: "12. Interventionsbausteine",
+        bullets: ["Psychoedukation", "Verhaltensaktivierung", "Kognitive Umstrukturierung", "Problemlösen", "Exposition", "Soziales Training", "Achtsamkeit", "Rückfallprophylaxe"],
+        layout: "steps", iconKey: "shield",
+        layoutData: { steps: [
+          { title: "Psychoedukation", description: "Modell der Depression gemeinsam erarbeiten." },
+          { title: "Verhaltensaktivierung", description: "Angenehme + Pflichtaktivitäten planen, Wochenplan." },
+          { title: "Kognitive Umstrukturierung", description: "ABC-Modell, Gedankenprotokoll, Realitätsprüfung." },
+          { title: "Problemlösetraining", description: "5-Schritte: Definieren → Lösungen → Bewerten → Umsetzen → Prüfen." },
+          { title: "Exposition", description: "Bei Vermeidung sozialer/leistungsbezogener Situationen." },
+          { title: "Soziales Kompetenztraining", description: "Nein-Sagen, Bedürfnisse äußern, Konflikte." },
+          { title: "Achtsamkeit & Akzeptanz", description: "MBCT-Elemente, Selbstmitgefühl." },
+          { title: "Rückfallprophylaxe", description: "Frühwarnzeichen, Notfallplan, Booster-Sitzungen." },
+        ] },
+      },
+      {
+        title: "13. Verlauf & Rückfallmodell",
+        bullets: ["Frühwarnzeichen", "Rückfallgedanken", "Schutzfaktoren", "Notfallplan"],
+        layout: "model", iconKey: "shield",
+        layoutData: { nodes: [
+          { label: "Frühwarnzeichen", description: "Schlaf ↓, Rückzug, Grübeln" },
+          { label: "Rückfallgedanken", description: "'Es kommt wieder', 'Ich schaffe es nie'" },
+          { label: "Schutzfaktoren", description: "Struktur, Kontakte, Skills" },
+          { label: "Notfallplan", description: "Wen anrufen, was tun – schriftlich" },
+        ] },
+      },
+      {
+        title: "Reflexion zum Abschluss",
+        bullets: ["Welcher aufrechterhaltende Faktor ist aktuell der stärkste Hebel?"],
+        layout: "question", iconKey: "question",
+        layoutData: {
+          headline: "Wo setzen wir zuerst an?",
+          subline: "Welcher aufrechterhaltende Faktor wirkt aktuell am stärksten – und ist gleichzeitig veränderbar?",
+        },
+      },
+    ],
+  },
 ];
 
 export function getTemplate(id: string) {
