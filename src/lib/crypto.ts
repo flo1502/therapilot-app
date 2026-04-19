@@ -84,17 +84,30 @@ export function lock() {
 async function ensureKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey;
   const AUTO_PWD_KEY = "therapilot.autopwd";
-  let pwd = localStorage.getItem(AUTO_PWD_KEY);
+  let pwd: string | null = null;
+  try {
+    pwd = localStorage.getItem(AUTO_PWD_KEY);
+  } catch {
+    // localStorage nicht verfügbar
+  }
   if (!pwd) {
     const rnd = crypto.getRandomValues(new Uint8Array(32));
     pwd = b64encode(rnd);
-    localStorage.setItem(AUTO_PWD_KEY, pwd);
+    try { localStorage.setItem(AUTO_PWD_KEY, pwd); } catch { /* ignore */ }
   }
-  if (!isEncryptionInitialized()) {
-    await initializeEncryption(pwd);
-  } else {
-    await unlock(pwd);
+
+  // Wenn bereits initialisiert, versuche zu entsperren
+  if (isEncryptionInitialized()) {
+    const ok = await unlock(pwd);
+    if (ok && cachedKey) return cachedKey;
+    // Mismatch (z.B. autopwd weg / neu generiert) -> Reset und neu initialisieren
+    try {
+      localStorage.removeItem(SALT_KEY);
+      localStorage.removeItem(VERIFY_KEY);
+    } catch { /* ignore */ }
   }
+
+  await initializeEncryption(pwd);
   if (!cachedKey) throw new Error("Konnte Schlüssel nicht initialisieren.");
   return cachedKey;
 }
