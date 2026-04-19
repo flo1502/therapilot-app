@@ -3,6 +3,8 @@ import type { SlideLayout, SlideLayoutData } from "@/lib/db";
 import type { IconKey } from "@/lib/slideIcons";
 import emotionalesNetzwerkImg from "@/assets/emotionales-netzwerk.jpg";
 import gehirnAmygdalaImg from "@/assets/gehirn-amygdala.jpg";
+import zirkadianeUhrImg from "@/assets/zirkadiane-uhr.jpg";
+import gehirnSchlafImg from "@/assets/gehirn-schlaf.jpg";
 
 export interface TemplateSlide {
   title: string;
@@ -673,6 +675,142 @@ export const TEMPLATES: Template[] = [
           { title: "Kleine Aktivitäten", description: "Pro Tag 1 angenehme + 1 sinnvolle Aktivität." },
           { title: "Bewegung", description: "Spaziergang, frische Luft – wirkt nachweislich." },
           { title: "Hilfe annehmen", description: "Therapie, Gespräche, ggf. Medikation." },
+        ] },
+      },
+    ],
+  },
+  {
+    id: "schlaf-depression",
+    title: "Schlaf & Zirkadiane Rhythmik bei Depression",
+    approach: "KVT-I & Chronotherapie",
+    category: "Psychoedukation",
+    tags: ["Schlaf", "Zirkadianer Rhythmus", "Depression", "KVT-I", "Lichttherapie", "Schlafhygiene"],
+    description: "Visualisiert den Zusammenhang von innerer Uhr, Schlaf und Depression – mit Schaubildern, Modellen und konkreten Interventionen.",
+    slides: [
+      {
+        title: "Schlaf, innere Uhr & Depression",
+        bullets: ["Schlaf ist mehr als Erholung", "Die innere Uhr steuert Stimmung mit", "Verstehen ist der erste Schritt"],
+        layout: "headline", iconKey: "sun",
+        layoutData: { headline: "Wenn die innere Uhr aus dem Takt gerät, leidet auch die Stimmung.", subline: "Schlaf und Depression beeinflussen sich gegenseitig – in beide Richtungen." },
+      },
+      {
+        title: "Was ist die zirkadiane Uhr?",
+        bullets: ["≈ 24-Stunden-Rhythmus", "Cortisol weckt uns morgens", "Melatonin macht uns abends müde", "Körpertemperatur sinkt zur Nacht"],
+        layout: "image", iconKey: "cycle",
+        layoutData: {
+          imageSrc: zirkadianeUhrImg,
+          imageAlt: "24-Stunden-Uhr mit Cortisol-, Melatonin- und Körpertemperatur-Kurve",
+          imageCaption: "Die innere Uhr koordiniert Hormone, Temperatur und Schlafdruck über 24 Stunden.",
+        },
+      },
+      {
+        title: "Die zwei Steuerungssysteme",
+        bullets: ["Prozess S: Schlafdruck baut sich tagsüber auf", "Prozess C: Innere Uhr taktet Wach- und Schlafphasen", "Beide zusammen ergeben gesunden Schlaf"],
+        layout: "model", iconKey: "scale",
+        layoutData: { nodes: [
+          { label: "Prozess S", description: "Schlafdruck – steigt je länger wir wach sind" },
+          { label: "Prozess C", description: "Innere Uhr – gibt den 24h-Takt vor" },
+          { label: "Schlaf-Wach-Rhythmus", description: "Stabiler Schlaf entsteht aus dem Zusammenspiel" },
+        ] },
+      },
+      {
+        title: "Wie Depression den Schlaf stört",
+        bullets: ["Grübeln hält wach", "Frühes Erwachen ist typisch", "Tagesmüdigkeit verstärkt Antriebslosigkeit", "Ein Teufelskreis entsteht"],
+        layout: "vicious-cycle", iconKey: "cycle",
+        layoutData: {
+          centerLabel: "Depression & Schlaf",
+          cycleNodes: [
+            { label: "Grübeln abends", description: "Gedankenkreisen verzögert das Einschlafen" },
+            { label: "Frühes Erwachen", description: "Wach um 3–5 Uhr, kein Wiedereinschlafen" },
+            { label: "Tagesmüdigkeit", description: "Energieloch, Konzentrationsprobleme" },
+            { label: "Antriebslosigkeit", description: "Weniger Aktivität, weniger Tageslicht" },
+          ],
+        },
+      },
+      {
+        title: "Gehirn & Schlaf bei Depression",
+        bullets: ["SCN: Hauptuhr im Hypothalamus", "Zirbeldrüse: schüttet Melatonin aus", "Präfrontaler Cortex: bei Depression weniger reguliert"],
+        layout: "image", iconKey: "brain",
+        layoutData: {
+          imageSrc: gehirnSchlafImg,
+          imageAlt: "Gehirn mit suprachiasmatischem Kern (SCN), Zirbeldrüse und präfrontalem Cortex",
+          imageCaption: "Licht aus dem Auge erreicht den SCN – die Hauptuhr taktet Melatonin und Stimmung.",
+        },
+      },
+      {
+        title: "Typische Schlafmuster",
+        bullets: ["Gesund vs. depressiv", "REM-Schlaf verschiebt sich nach vorne", "Tiefschlaf nimmt ab"],
+        layout: "before-after", iconKey: "scale",
+        layoutData: {
+          before: { title: "Gesunder Schlaf", items: ["Einschlafen < 20 Min", "Stabile Tiefschlafphasen", "REM in der zweiten Nachthälfte", "Erholt aufwachen"] },
+          after:  { title: "Schlaf bei Depression", items: ["Langes Einschlafen, Grübeln", "Wenig Tiefschlaf", "REM früher & länger", "Frühes Erwachen, nicht erholt"] },
+        },
+      },
+      {
+        title: "Licht als Taktgeber",
+        bullets: ["Tageslicht: 10.000–100.000 Lux", "Wohnraum: nur 100–500 Lux", "Morgenlicht stabilisiert die Uhr"],
+        layout: "headline", iconKey: "sun",
+        layoutData: {
+          headline: "Licht ist das stärkste Signal für Ihre innere Uhr.",
+          subline: "Schon 20–30 Minuten Morgenlicht im Freien wirken stärker als jede Innenraumbeleuchtung.",
+        },
+      },
+      {
+        title: "Schlafhygiene – die 7 Säulen",
+        bullets: ["Konkrete, alltagstaugliche Schritte"],
+        layout: "steps", iconKey: "shield",
+        layoutData: { steps: [
+          { title: "Feste Aufstehzeit", description: "Jeden Tag zur gleichen Zeit aufstehen – auch am Wochenende." },
+          { title: "Morgenlicht tanken", description: "20–30 Min draußen innerhalb der ersten Stunde nach dem Aufwachen." },
+          { title: "Bewegung am Tag", description: "Mindestens 30 Min Aktivität – nicht in den letzten 3 h vor dem Schlaf." },
+          { title: "Koffein-Stop ab Mittag", description: "Halbwertszeit ca. 5–6 h – nach 14 Uhr meiden." },
+          { title: "Bildschirme dimmen", description: "Letzte Stunde: warmes Licht, Nachtmodus, kein Doomscrolling." },
+          { title: "Kühles Schlafzimmer", description: "16–18 °C, dunkel, ruhig – Schlafen statt Arbeiten." },
+          { title: "Wind-Down-Routine", description: "30 Min Ritual: Lesen, Atmen, Tee – Signal an Körper & Geist." },
+        ] },
+      },
+      {
+        title: "Bett-Restriktion & Stimuluskontrolle (KVT-I)",
+        bullets: ["Bett nur für Schlaf", "Schlafzeiten kontrolliert verkürzen"],
+        layout: "steps", iconKey: "target",
+        layoutData: { steps: [
+          { title: "Bett = Schlaf", description: "Nicht lesen, essen, grübeln im Bett – stärkt die Verknüpfung Bett ↔ Schlaf." },
+          { title: "Schlaffenster festlegen", description: "Bettzeit auf tatsächlich geschlafene Zeit begrenzen (mind. 5 h)." },
+          { title: "20-Minuten-Regel", description: "Wach im Bett? Aufstehen, ruhige Tätigkeit, erst bei Müdigkeit zurück." },
+          { title: "Aufstehzeit fix halten", description: "Aufstehzeit ist Anker – Bettzeit erst nach besserem Schlaf erweitern." },
+          { title: "Schlaftagebuch führen", description: "Wöchentlich auswerten, Schlaffenster anpassen." },
+        ] },
+      },
+      {
+        title: "Chronotherapie-Optionen",
+        bullets: ["Gezielte Verschiebung der inneren Uhr", "Wirksam zusätzlich zu KVT & Medikation"],
+        layout: "model", iconKey: "lightbulb",
+        layoutData: { nodes: [
+          { label: "Lichttherapie", description: "10.000 Lux, 30 Min morgens" },
+          { label: "Wachtherapie", description: "Partieller Schlafentzug 2. Nachthälfte" },
+          { label: "Schlafphasen-Vorverlagerung", description: "Bettzeit schrittweise nach vorne" },
+        ] },
+      },
+      {
+        title: "Reflexion",
+        bullets: ["Wo steht Ihr Schlaf gerade?"],
+        layout: "question", iconKey: "question",
+        layoutData: {
+          headline: "Welcher Ihrer Schlaf-Bausteine ist gerade am instabilsten?",
+          subline: "Aufstehzeit · Morgenlicht · Bewegung · Bildschirme · Wind-Down · Bett-Stimulus",
+        },
+      },
+      {
+        title: "Mein Schlaf-Wochenplan",
+        bullets: ["Konkrete Umsetzung für die nächste Woche"],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "Aufstehzeit festlegen", description: "Eine feste Uhrzeit für alle 7 Tage – schreiben Sie sie auf." },
+          { title: "Morgenlicht-Termin", description: "Täglich 20 Min draußen direkt nach dem Aufstehen einplanen." },
+          { title: "Koffein-Cut-off", description: "Letzter Kaffee/Schwarztee spätestens 14:00 Uhr." },
+          { title: "Bildschirm-Stopp", description: "60 Min vor Bettzeit Geräte weglegen – Alternative bereitlegen." },
+          { title: "Wind-Down ab 21:30", description: "Fester 30-Min-Block: Dusche, Lesen, ruhige Musik." },
+          { title: "Schlaftagebuch", description: "Jeden Morgen 1 Min: Bettzeit, Aufstehzeit, Qualität (1–10)." },
         ] },
       },
     ],
