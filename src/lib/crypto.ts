@@ -110,7 +110,7 @@ export async function encryptString(plain: string): Promise<string> {
 }
 
 export async function decryptString(payload: string): Promise<string> {
-  if (!cachedKey) throw new Error("locked");
+  const key = await ensureKey();
   const data = b64decode(payload);
   const iv = data.slice(0, 12);
   const ct = data.slice(12);
