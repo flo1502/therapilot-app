@@ -372,6 +372,223 @@ export const TEMPLATES: Template[] = [
     ],
   },
   {
+    id: "emotionswahrnehmung",
+    title: "Emotionswahrnehmung – Gefühle erkennen & verstehen",
+    approach: "Andere",
+    category: "Psychoedukation",
+    tags: ["Emotionen", "Achtsamkeit", "Selbstwahrnehmung"],
+    description: "Grundlagen der Emotionswahrnehmung: Was sind Emotionen, wie zeigen sie sich und wie kann ich sie erkennen?",
+    slides: [
+      {
+        title: "Was sind Emotionen?",
+        bullets: ["Kurze, intensive innere Reaktionen", "Immer mit Körper, Gedanken & Verhalten verbunden", "Sie haben eine Botschaft – nie ohne Grund"],
+        layout: "headline", iconKey: "heart",
+        layoutData: { headline: "Emotionen sind Boten – keine Feinde.", subline: "Sie zeigen, was uns wichtig ist und was wir brauchen." },
+      },
+      {
+        title: "Die vier Bausteine jeder Emotion",
+        bullets: ["Körper – Empfindung", "Gedanken – Bewertung", "Handlungsimpuls – Tendenz", "Ausdruck – Mimik, Stimme"],
+        layout: "model", iconKey: "brain",
+        layoutData: { nodes: [
+          { label: "Körper", description: "Herzklopfen, Enge, Wärme, Druck" },
+          { label: "Gedanken", description: "'Das ist unfair', 'Ich schaffe das nicht'" },
+          { label: "Impuls", description: "fliehen, kämpfen, erstarren, annähern" },
+          { label: "Ausdruck", description: "Stirn runzeln, Lächeln, Schultern hängen" },
+        ] },
+      },
+      {
+        title: "Grundemotionen",
+        bullets: ["Freude – etwas Wertvolles geschieht", "Trauer – etwas geht verloren", "Wut – eine Grenze wird überschritten", "Angst – etwas wird bedrohlich", "Ekel – etwas ist abstoßend", "Scham – ich fühle mich falsch"],
+        layout: "bullets", iconKey: "heart",
+      },
+      {
+        title: "Was Emotionen uns sagen – Beispiele",
+        bullets: ["Wut: 'Hier ist eine Grenze'", "Angst: 'Pass auf'", "Trauer: 'Etwas Wichtiges fehlt'", "Scham: 'Ich gehöre vielleicht nicht dazu'", "Freude: 'Mehr davon!'"],
+        layout: "before-after", iconKey: "lightbulb",
+        layoutData: {
+          before: { title: "Emotion bekämpfen", items: ["'Ich darf nicht traurig sein'", "Unterdrücken", "Ablenkung, Substanzen", "Spannung wächst"] },
+          after:  { title: "Emotion hören",      items: ["'Was will mir das sagen?'", "Spüren & benennen", "Bedürfnis erkennen", "Spannung sinkt"] },
+        },
+      },
+      {
+        title: "Körperlandkarte der Gefühle",
+        bullets: ["Angst: Brust eng, Hände kalt", "Wut: Kiefer, Fäuste, Hitze", "Trauer: schwere Brust, Tränen, Müdigkeit", "Freude: weit, leicht, warm", "Scham: heißes Gesicht, Blick gesenkt"],
+        layout: "model", iconKey: "heart",
+        layoutData: { nodes: [
+          { label: "Angst", description: "Brust eng, Atem flach, Hände kalt" },
+          { label: "Wut", description: "Kiefer fest, Hitze, Druck im Kopf" },
+          { label: "Trauer", description: "Schwere, Tränen, Müdigkeit" },
+          { label: "Scham", description: "heißes Gesicht, Blick nach unten" },
+        ] },
+      },
+      {
+        title: "Warum wir Emotionen oft nicht spüren",
+        bullets: ["Frühe Botschaft: 'Sei nicht so empfindlich'", "Schutz vor Schmerz", "Dauerstress betäubt", "Kopf statt Körper – wir denken statt fühlen"],
+        layout: "vicious-cycle", iconKey: "cycle",
+        layoutData: {
+          centerLabel: "Gefühl unklar",
+          cycleNodes: [
+            { label: "Gefühl entsteht", description: "leise im Körper" },
+            { label: "Wegdrücken", description: "ablenken, rationalisieren" },
+            { label: "Spannung staut", description: "Körper wird laut" },
+            { label: "Überflutung", description: "plötzlich 'zu viel'" },
+          ],
+        },
+      },
+      {
+        title: "Übung: Emotions-Check-in (3 Minuten)",
+        bullets: ["Innehalten", "Körper scannen", "Benennen: 'Ich fühle gerade …'", "Bedürfnis erkennen"],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "Innehalten", description: "Stoppen, was Sie tun. 3 bewusste Atemzüge." },
+          { title: "Körper scannen", description: "Wo spüre ich etwas? Eng, warm, schwer, kribbelnd?" },
+          { title: "Benennen", description: "'Ich fühle gerade Anspannung / Trauer / Ärger / …'. Bewerten Sie nichts." },
+          { title: "Bedürfnis erkennen", description: "Was bräuchte ich gerade? Ruhe, Nähe, Klarheit, Pause?" },
+        ] },
+      },
+      {
+        title: "Beispiele für Gefühlsworte",
+        bullets: ["Statt 'gut': zufrieden, geborgen, stolz, neugierig", "Statt 'schlecht': enttäuscht, einsam, gekränkt, hilflos", "Statt 'gestresst': überfordert, gereizt, ängstlich, müde"],
+        layout: "before-after", iconKey: "scale",
+        layoutData: {
+          before: { title: "Vage", items: ["'Mir geht's gut'", "'Mir geht's schlecht'", "'Ich bin gestresst'", "'Komisches Gefühl'"] },
+          after:  { title: "Präzise", items: ["'Ich fühle mich erleichtert und stolz'", "'Ich bin enttäuscht und einsam'", "'Ich bin überfordert und gereizt'", "'Ich fühle Unsicherheit und leise Angst'"] },
+        },
+      },
+      {
+        title: "Primär- vs. Sekundäremotion",
+        bullets: ["Primär: erste, echte Reaktion (z. B. Verletzung)", "Sekundär: Gefühl über das Gefühl (z. B. Wut über die Verletzung)", "Heilung beginnt bei der Primäremotion"],
+        layout: "before-after", iconKey: "lightbulb",
+        layoutData: {
+          before: { title: "Sichtbar – Sekundär", items: ["Wut", "Zynismus", "Rückzug", "Reizbarkeit"] },
+          after:  { title: "Darunter – Primär",   items: ["Verletzung", "Angst", "Trauer", "Sehnsucht"] },
+        },
+      },
+      {
+        title: "Reflexion",
+        bullets: ["Welche Emotion fällt mir leicht?", "Welche meide ich?", "Welche Botschaft habe ich heute übersehen?"],
+        layout: "question", iconKey: "question",
+        layoutData: { headline: "Was fühle ich gerade – wirklich?", subline: "Nicht bewerten. Nur bemerken. Das ist schon der erste Schritt." },
+      },
+    ],
+  },
+  {
+    id: "emotionsregulation",
+    title: "Emotionsregulation – Mit Gefühlen umgehen",
+    approach: "Andere",
+    category: "Intervention",
+    tags: ["Emotionen", "Skills", "DBT", "Selbstregulation"],
+    description: "Praktische Strategien zur Regulation starker Emotionen – von Skills über Akzeptanz bis Werteorientierung.",
+    slides: [
+      {
+        title: "Was heißt Emotionsregulation?",
+        bullets: ["Nicht: Gefühle wegmachen", "Sondern: bewusst damit umgehen", "Intensität & Dauer beeinflussen"],
+        layout: "headline", iconKey: "scale",
+        layoutData: { headline: "Regulieren heißt nicht unterdrücken.", subline: "Es heißt: fühlen können, ohne überflutet zu werden." },
+      },
+      {
+        title: "Das Toleranzfenster",
+        bullets: ["Innerhalb: handlungsfähig, klar", "Übererregung: Panik, Wut, Flucht", "Untererregung: Leere, Erstarrung, Taubheit", "Ziel: zurück ins Fenster"],
+        layout: "model", iconKey: "scale",
+        layoutData: { nodes: [
+          { label: "Übererregung", description: "Herzrasen, Panik, Wut, Hyperaktivität" },
+          { label: "Toleranzfenster", description: "ruhig, klar, präsent, handlungsfähig" },
+          { label: "Untererregung", description: "Leere, Taubheit, Dissoziation, Erschöpfung" },
+        ] },
+      },
+      {
+        title: "Vier Wege der Regulation",
+        bullets: ["Situation verändern", "Aufmerksamkeit lenken", "Bewertung verändern", "Reaktion modulieren"],
+        layout: "model", iconKey: "compass",
+        layoutData: { nodes: [
+          { label: "Situation", description: "raus, Pause, Grenze setzen" },
+          { label: "Aufmerksamkeit", description: "ablenken, fokussieren" },
+          { label: "Bewertung", description: "Gedanken prüfen, umdeuten" },
+          { label: "Reaktion", description: "Atem, Skills, Bewegung" },
+        ] },
+      },
+      {
+        title: "Skills bei Hochanspannung (über 70 %)",
+        bullets: ["Eiswasser ins Gesicht – Tauchreflex", "Crushed Ice in der Hand", "Treppen rauf-runter, Sprints", "Scharfes lutschen (Chili, Ingwer)", "Igelball, Gummiband"],
+        layout: "bullets", iconKey: "shield",
+      },
+      {
+        title: "Skills bei mittlerer Anspannung",
+        bullets: ["4-7-8-Atmung", "5-4-3-2-1 Sinne (sehen, hören, fühlen, riechen, schmecken)", "Kalt duschen, Hände in kaltes Wasser", "Bewegung an der frischen Luft", "Musik – aktivierend oder beruhigend"],
+        layout: "steps", iconKey: "breath",
+        layoutData: { steps: [
+          { title: "4-7-8-Atmung", description: "4 Sek einatmen, 7 Sek halten, 8 Sek ausatmen. 4 Runden." },
+          { title: "5-4-3-2-1", description: "5 Dinge sehen, 4 hören, 3 fühlen, 2 riechen, 1 schmecken." },
+          { title: "Kälte", description: "Hände/Gesicht in kaltes Wasser – aktiviert den Vagus." },
+          { title: "Bewegung", description: "10 Min Spaziergang reduziert Cortisol messbar." },
+        ] },
+      },
+      {
+        title: "Skills bei Untererregung / Leere",
+        bullets: ["Aktivierende Musik", "Kaltes Gesicht waschen", "Riechen: Pfefferminz, Zitrone", "Mit jemandem sprechen", "Kleine Bewegung – aufstehen, dehnen"],
+        layout: "bullets", iconKey: "sun",
+      },
+      {
+        title: "STOP – die Notbremse",
+        bullets: ["S – Stopp", "T – Tief atmen", "O – Observieren (was ist gerade?)", "P – Plan, dann handeln"],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "S – Stopp", description: "Bewegung anhalten. Innerlich 'STOP' sagen." },
+          { title: "T – Tief atmen", description: "3 langsame Atemzüge, Ausatmen länger als Einatmen." },
+          { title: "O – Observieren", description: "Was spüre ich im Körper? Was denke ich? Was ist die Situation?" },
+          { title: "P – Plan", description: "Was wäre jetzt klug? Was passt zu meinen Werten?" },
+        ] },
+      },
+      {
+        title: "Gedanken regulieren – Beispiele",
+        bullets: ["'Ich halte das nicht aus' → 'Es ist gerade unangenehm – und es geht vorbei'", "'Ich bin allein' → 'Gerade fühle ich mich allein – wer ist erreichbar?'", "'Alles ist sinnlos' → 'Im Moment fehlt mir der Sinn – das ist ein Symptom'"],
+        layout: "before-after", iconKey: "brain",
+        layoutData: {
+          before: { title: "Verstärkender Gedanke", items: ["'Ich halte das nicht aus'", "'Das hört nie auf'", "'Ich bin schwach'", "'Niemand versteht mich'"] },
+          after:  { title: "Regulierender Gedanke", items: ["'Es ist gerade schwer – und es ist eine Welle'", "'Auch dieses Gefühl wird sich verändern'", "'Ich darf gerade Hilfe brauchen'", "'Ich kann jemandem schreiben'"] },
+        },
+      },
+      {
+        title: "Akzeptanz statt Kampf",
+        bullets: ["Widerstand verstärkt das Gefühl", "Akzeptieren ≠ gutheißen", "'Es ist gerade so – und das darf sein'", "Welle reiten statt dagegen schwimmen"],
+        layout: "vicious-cycle", iconKey: "cycle",
+        layoutData: {
+          centerLabel: "Leiden",
+          cycleNodes: [
+            { label: "Schmerz", description: "unvermeidlich" },
+            { label: "Widerstand", description: "'darf nicht sein'" },
+            { label: "Anspannung wächst", description: "Körper kämpft" },
+            { label: "Mehr Schmerz", description: "Schmerz × Widerstand" },
+          ],
+        },
+      },
+      {
+        title: "Werteorientiert handeln – auch im Sturm",
+        bullets: ["Frage: 'Was ist mir wichtig – auch wenn ich so fühle?'", "Kleinste werteorientierte Handlung wählen", "Gefühl darf mitfahren – aber nicht steuern"],
+        layout: "question", iconKey: "compass",
+        layoutData: { headline: "Was würde ich tun, wenn dieses Gefühl mich nicht steuert?", subline: "Werte zeigen die Richtung – Skills tragen durch den Sturm." },
+      },
+      {
+        title: "Langfristig: Resilienz aufbauen",
+        bullets: ["Schlaf, Bewegung, Ernährung, Substanzen", "Soziale Verbindung pflegen", "Tägliche Achtsamkeit", "Angenehme Aktivitäten einplanen", "Selbstmitgefühl üben"],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "Körper pflegen", description: "Schlaf 7–9h, Bewegung, regelmäßig essen, Substanzen reduzieren." },
+          { title: "Verbinden", description: "1× pro Tag echten Kontakt – Anruf, Treffen, Nachricht." },
+          { title: "Achtsamkeit", description: "5–10 Min täglich – Atem, Bodyscan, Spaziergang ohne Handy." },
+          { title: "Genuss & Sinn", description: "1 angenehme + 1 sinnvolle Aktivität pro Tag eintragen." },
+          { title: "Selbstmitgefühl", description: "'Wie würde ich mit einer Freund:in sprechen?'" },
+        ] },
+      },
+      {
+        title: "Mein Notfallplan",
+        bullets: ["Frühwarnzeichen erkennen", "3 Skills für Hochanspannung", "3 Personen, die ich anrufen kann", "Professionelle Hilfe griffbereit"],
+        layout: "question", iconKey: "shield",
+        layoutData: { headline: "Was ist mein Plan, bevor die Welle kommt?", subline: "Vorher denken – damit ich im Sturm nicht denken muss." },
+      },
+    ],
+  },
+  {
     id: "psychoed-depression",
     title: "Psychoedukation – Depression",
     approach: "KVT",
