@@ -33,6 +33,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const [aiBusy, setAiBusy] = useState(false);
   const [aiPicks, setAiPicks] = useState<SuggestedSlideRef[] | null>(null);
   const [presentIndex, setPresentIndex] = useState<number | null>(null);
+  const [searchQ, setSearchQ] = useState("");
 
   const patientDecks = useLiveQuery(
     () => (patientId ? db.decks.where("patientId").equals(patientId).toArray() : Promise.resolve([])),
