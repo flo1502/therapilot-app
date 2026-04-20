@@ -68,30 +68,19 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     if (!aiPicks) return [];
     const out: ResolvedSlide[] = [];
     aiPicks.forEach((p, i) => {
-      if (p.source === "template") {
-        const t = TEMPLATES.find(x => x.id === p.sourceId);
-        const s = t?.slides[p.slideIndex];
-        if (t && s) out.push({
-          key: `ai-t:${i}`,
-          source: "template",
-          sourceLabel: `Template · ${t.title}`,
-          slide: { id: `${t.id}-${p.slideIndex}`, title: s.title, bullets: s.bullets, notes: s.notes },
-          reason: p.reason,
-        });
-      } else {
-        const d = (patientDecks ?? []).find(x => x.id === p.sourceId);
-        const s = d?.slides[p.slideIndex];
-        if (d && s) out.push({
-          key: `ai-d:${i}`,
-          source: "deck",
-          sourceLabel: `Patient · ${d.title}`,
-          slide: s,
-          reason: p.reason,
-        });
-      }
+      if (p.source !== "template") return;
+      const t = TEMPLATES.find(x => x.id === p.sourceId);
+      const s = t?.slides[p.slideIndex];
+      if (t && s) out.push({
+        key: `ai-t:${i}`,
+        source: "template",
+        sourceLabel: `Template · ${t.title}`,
+        slide: { id: `${t.id}-${p.slideIndex}`, title: s.title, bullets: s.bullets, notes: s.notes },
+        reason: p.reason,
+      });
     });
     return out;
-  }, [aiPicks, patientDecks]);
+  }, [aiPicks]);
 
   const searchResults = useMemo<ResolvedSlide[]>(() => {
     const q = searchQ.trim().toLowerCase();
@@ -111,21 +100,8 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
         }
       });
     });
-    (patientDecks ?? []).forEach(d => {
-      d.slides.forEach((s, idx) => {
-        const m = [d.title, s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
-        if (m) {
-          out.push({
-            key: `s-d:${d.id}:${idx}`,
-            source: "deck",
-            sourceLabel: `Patient · ${d.title}`,
-            slide: s,
-          });
-        }
-      });
-    });
     return out.slice(0, 20);
-  }, [searchQ, patientDecks]);
+  }, [searchQ]);
 
   const visibleSlides = searchQ.trim()
     ? searchResults
