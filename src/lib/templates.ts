@@ -1428,6 +1428,148 @@ export const TEMPLATES: Template[] = [
       },
     ],
   },
+  {
+    id: "fallkonzept-depression-biografie",
+    title: "Fallkonzept Depression – 4. Biographische Anamnese",
+    approach: "KVT",
+    category: "Psychoedukation",
+    tags: ["Biografie", "Lebensgeschichte", "Bindung", "Lebensereignisse"],
+    description: "Vertiefung zu Punkt 4 des Fallkonzept-Baums: Herkunft, Kindheit, Bindung, Schule/Ausbildung, Partnerschaften und kritische Lebensereignisse.",
+    slides: [
+      {
+        title: "4. Biographische Anamnese",
+        bullets: ["Herkunft", "Kindheit", "Bindung", "Schule/Beruf", "Partnerschaften", "Lebensereignisse"],
+        layout: "headline", iconKey: "leaf",
+        layoutData: {
+          headline: "Wie ist diese Person geworden, wer sie heute ist?",
+          subline: "Lebenslinie als Landkarte für Ressourcen und Vulnerabilitäten.",
+        },
+      },
+      {
+        title: "Inhalt – die 6 biografischen Bausteine",
+        bullets: [
+          "4.1 Familie & Herkunft",
+          "4.2 Kindheit & Jugend",
+          "4.3 Bindungserfahrungen",
+          "4.4 Schule, Ausbildung, Beruf",
+          "4.5 Partnerschaften & Familie heute",
+          "4.6 Kritische Lebensereignisse",
+        ],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "4.1 Herkunft", description: "Familienkonstellation, Geschwister, sozioökonomisch." },
+          { title: "4.2 Kindheit", description: "Atmosphäre, Erziehungsstil, Belastungen." },
+          { title: "4.3 Bindung", description: "Sicher · unsicher-vermeidend · ambivalent · desorganisiert." },
+          { title: "4.4 Bildung & Beruf", description: "Leistungsbiografie, Erfolge, Brüche." },
+          { title: "4.5 Beziehungen", description: "Partnerschaften, eigene Kinder, soziales Netz." },
+          { title: "4.6 Lebensereignisse", description: "Verluste, Trauma, Umbrüche – Timing wichtig." },
+        ] },
+      },
+      {
+        title: "4.1 Familie & Herkunft",
+        bullets: [
+          "Familienkonstellation (Eltern, Geschwister, Position)",
+          "Sozioökonomischer Hintergrund",
+          "Psychische Erkrankungen in der Familie",
+          "Familiäre Werte & 'unausgesprochene Regeln'",
+          "Migration / kulturelle Einflüsse",
+        ],
+        layout: "bullets", iconKey: "hands",
+      },
+      {
+        title: "4.2 Kindheit & Jugend",
+        bullets: ["Behütete vs. belastete Kindheit"],
+        layout: "before-after", iconKey: "sun",
+        layoutData: {
+          before: {
+            title: "Schützende Erfahrungen",
+            items: [
+              "Verlässliche Bezugspersonen",
+              "Emotionale Wärme",
+              "Klare, faire Strukturen",
+              "Erfahrung von Selbstwirksamkeit",
+            ],
+          },
+          after: {
+            title: "Belastende Erfahrungen",
+            items: [
+              "Vernachlässigung / Gewalt / Missbrauch",
+              "Konflikte, Trennung, Sucht der Eltern",
+              "Überforderung (Parentifizierung)",
+              "Mobbing, soziale Ausgrenzung",
+            ],
+          },
+        },
+      },
+      {
+        title: "4.3 Bindungserfahrungen",
+        bullets: ["4 Bindungsstile nach Bowlby/Ainsworth"],
+        layout: "model", iconKey: "heart",
+        layoutData: { nodes: [
+          { label: "Sicher", description: "Nähe + Autonomie, Vertrauen in andere" },
+          { label: "Unsicher-vermeidend", description: "Distanz, Selbstständigkeit als Schutz" },
+          { label: "Unsicher-ambivalent", description: "Klammern, Verlustangst, schnelle Kränkbarkeit" },
+          { label: "Desorganisiert", description: "Bezugsperson Quelle von Schutz UND Angst" },
+        ] },
+      },
+      {
+        title: "4.4 Schule, Ausbildung, Beruf",
+        bullets: ["Leistungsbiografie & Selbstwertquellen"],
+        layout: "steps", iconKey: "target",
+        layoutData: { steps: [
+          { title: "Schule", description: "Leistung, Anerkennung, Mobbing-Erfahrungen, Schulwechsel." },
+          { title: "Ausbildung / Studium", description: "Eigene Wahl oder Druck? Abbrüche? Erfolgserlebnisse?" },
+          { title: "Beruf", description: "Werdegang, Brüche, Arbeitslosigkeit, Burnout-Vorgeschichte." },
+          { title: "Selbstwert", description: "Wird Selbstwert primär über Leistung definiert?" },
+        ] },
+      },
+      {
+        title: "4.5 Partnerschaften & aktuelle Familie",
+        bullets: [
+          "Längere Beziehungen – Verlauf, Konflikte, Trennungen",
+          "Aktuelle Partnerschaft: Qualität, Unterstützung",
+          "Eigene Kinder – Beziehung, Belastung, Ressource",
+          "Sexualität & Intimität",
+          "Soziales Netz außerhalb der Kernfamilie",
+        ],
+        layout: "bullets", iconKey: "hands",
+      },
+      {
+        title: "4.6 Kritische Lebensereignisse",
+        bullets: ["Life Events als Auslöser & Vulnerabilitäten"],
+        layout: "model", iconKey: "scale",
+        layoutData: { nodes: [
+          { label: "Verluste", description: "Tod, Trennung, Arbeitsplatzverlust" },
+          { label: "Trauma", description: "Gewalt, Unfall, Missbrauch (T1/T2)" },
+          { label: "Übergänge", description: "Auszug, Heirat, Geburt, Pension" },
+          { label: "Chronische Belastung", description: "Pflege, Krankheit, finanzielle Not" },
+        ] },
+      },
+      {
+        title: "Lebenslinie – das Gesamtbild",
+        bullets: ["Vulnerabilitäten & Ressourcen verbinden"],
+        layout: "vicious-cycle", iconKey: "compass",
+        layoutData: {
+          centerLabel: "Lebenslinie",
+          cycleNodes: [
+            { label: "Frühe Prägungen", description: "Bindung, Erziehungsstil" },
+            { label: "Lernerfahrungen", description: "Schule, Beruf, Beziehungen" },
+            { label: "Kritische Ereignisse", description: "Verluste, Trauma, Übergänge" },
+            { label: "Ressourcen", description: "Kompetenzen, Netz, Werte" },
+          ],
+        },
+      },
+      {
+        title: "Reflexion",
+        bullets: ["Welche biografischen Linien wirken bis heute nach – stützend oder belastend?"],
+        layout: "question", iconKey: "question",
+        layoutData: {
+          headline: "Was aus der Geschichte wirkt heute noch?",
+          subline: "Vulnerabilitäten verstehen – Ressourcen wieder zugänglich machen.",
+        },
+      },
+    ],
+  },
 ];
 
 export function getTemplate(id: string) {
