@@ -105,7 +105,43 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     return out;
   }, [aiPicks, patientDecks]);
 
-  const visibleSlides = aiResolved.length > 0 ? aiResolved : defaultSlides;
+  const searchResults = useMemo<ResolvedSlide[]>(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return [];
+    const out: ResolvedSlide[] = [];
+    TEMPLATES.forEach(t => {
+      const tplMatch = [t.title, t.description, t.approach, t.category, ...t.tags].join(" ").toLowerCase().includes(q);
+      t.slides.forEach((s, idx) => {
+        const slideMatch = [s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
+        if (tplMatch || slideMatch) {
+          out.push({
+            key: `s-t:${t.id}:${idx}`,
+            source: "template",
+            sourceLabel: `Template · ${t.title}`,
+            slide: { id: `${t.id}-${idx}`, title: s.title, bullets: s.bullets, notes: s.notes },
+          });
+        }
+      });
+    });
+    (patientDecks ?? []).forEach(d => {
+      d.slides.forEach((s, idx) => {
+        const m = [d.title, s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
+        if (m) {
+          out.push({
+            key: `s-d:${d.id}:${idx}`,
+            source: "deck",
+            sourceLabel: `Patient · ${d.title}`,
+            slide: s,
+          });
+        }
+      });
+    });
+    return out.slice(0, 20);
+  }, [searchQ, patientDecks]);
+
+  const visibleSlides = searchQ.trim()
+    ? searchResults
+    : aiResolved.length > 0 ? aiResolved : defaultSlides;
 
   const askAi = async () => {
     setAiBusy(true);
