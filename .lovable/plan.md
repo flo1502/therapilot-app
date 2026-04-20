@@ -1,38 +1,37 @@
 
 
-Der User möchte, dass ich für **Punkt 1 "Diagnostik / Störungsbild"** des Fallkonzept-Baums passende, ausführlich visualisierte Slides erstelle — und zwar mit einer klaren Struktur, die dem Inhaltsverzeichnis (1.1 bis 1.5) folgt. Das wird ein eigenes, fokussiertes Sub-Template, das tiefer in die Diagnostik einsteigt als die eine Übersichts-Slide im großen Fallkonzept-Template.
+## Plan: 6 Vertiefungs-Templates für Punkt 4 "Behandlung"
 
-## Plan: Neues Template "Fallkonzept Depression – 1. Diagnostik / Störungsbild (Vertiefung)"
+Jeweils 12+ Slides, gleicher Stil wie bisher. Ein Template pro Baustein – damit jeder Therapieschritt eigenständig in einer oder mehreren Sitzungen einsetzbar ist.
 
-Ein eigenständiges Vertiefungs-Template mit **9 Slides**, das exakt der Baumstruktur 1.x folgt. Jeder Unterpunkt erhält mindestens eine eigene Slide mit passendem Visualisierungs-Layout.
+### Templates (IDs)
 
-### Slide-Struktur (folgt Inhaltsverzeichnis)
+| # | ID | Titel | Slides |
+|---|----|-------|--------|
+| 4.1 | `behandlung-psychoedukation` | Psychoedukation Depression | 12 |
+| 4.2 | `behandlung-verhaltensaktivierung` | Verhaltensaktivierung | 13 |
+| 4.3 | `behandlung-kognitive-therapie` | Kognitive Therapie | 13 |
+| 4.4 | `behandlung-interpersonell` | Interpersonelle Arbeit (IPT-Elemente) | 12 |
+| 4.5 | `behandlung-achtsamkeit-akzeptanz` | Achtsamkeit & Akzeptanz | 12 |
+| 4.6 | `behandlung-rueckfallprophylaxe` | Rückfallprophylaxe | 12 |
 
-| # | Slide | Punkt | Layout | Visualisierung |
-|---|-------|-------|--------|----------------|
-| 1 | Titel & Übersicht | 1. | `headline` | Hauptbotschaft + Subline mit den 5 Unterbereichen |
-| 2 | Inhaltsverzeichnis Diagnostik | 1.1–1.5 | `steps` | 5 nummerierte Schritte als Kapitelübersicht |
-| 3 | Diagnose nach ICD-10 / ICD-11 | 1.1 | `before-after` | ICD-10 (F32/F33) vs. ICD-11 (6A70/6A71) Gegenüberstellung |
-| 4 | Schweregrad-Spektrum | 1.2 | `model` | 3 Knoten: leicht → mittel → schwer (mit Symptomanzahl-Kriterien) |
-| 5 | Episodenverlauf | 1.3 | `before-after` | Erstepisode vs. Rezidivierend (Verlaufsmuster, Prognose) |
-| 6 | Leitsymptome (Haupttrias) | 1.4 | `model` | 3 Knoten: gedrückte Stimmung · Antriebsmangel · Interessenverlust |
-| 7 | Zusatzsymptome – Überblick | 1.5 | `bullets` | Alle 5 Zusatzsymptome mit Kurzerklärung |
-| 8 | Zusatzsymptome im Detail | 1.5 | `steps` | 5 Schritte: Schlaf · Appetit · Konzentration · Schuld · Suizidalität – jeweils mit klinischen Hinweisen |
-| 9 | Diagnostik-Zusammenfassung | 1. | `vicious-cycle` | Zentrum „Diagnose Depression", 4 Knoten: Symptomdauer ≥2 Wo · Funktionseinschränkung · Leidensdruck · Differentialdiagnose |
+### Slide-Skelett pro Template (einheitliches Muster)
+
+1. Titel-Slide (`headline`) – Hauptbotschaft
+2. Inhaltsverzeichnis (`steps`) – Übersicht des Bausteins
+3. Modell/Theorie-Slide (`model`) – warum es wirkt
+4. Vorher/Nachher (`before-after`) – Ausgangslage vs. Ziel
+5–9. Konkrete Methoden/Techniken (`steps`, `bullets`, `model`)
+10. Hausaufgabe / Arbeitsblatt (`bullets`)
+11. Häufige Hindernisse (`vicious-cycle` oder `before-after`)
+12. Zusammenfassung (`vicious-cycle`)
+13. Reflexion (`question`)
 
 ### Technische Umsetzung
-
-**Geänderte Datei (nur eine):**
-- `src/lib/templates.ts` — neues Template-Objekt `fallkonzept-depression-diagnostik` mit Approach `KVT`, eingefügt direkt nach `fallkonzept-depression-vt`
-
-**Keine neuen Bilder nötig** — alle Layouts sind rein strukturell und nutzen vorhandene Renderer (`headline`, `steps`, `before-after`, `model`, `bullets`, `vicious-cycle`).
-
-**Icons (aus `slideIcons.ts`):** `compass` (Diagnose), `scale` (Schweregrad), `cycle` (Verlauf), `target` (Leitsymptome), `brain`, `moon` (Schlaf), `heart` (Suizidalität), `shield` (Zusammenfassung).
-
-**Klinische Tiefe:** Jede Slide enthält konkrete, klinisch korrekte Inhalte (z. B. ICD-Kriterien, Symptomanzahl pro Schweregrad, Differentialdiagnostik-Hinweise) — nicht nur Stichworte aus dem Baum, sondern ausgearbeitete Inhalte für die Patientenkommunikation.
-
-**Konsistenz:** Das Template erscheint automatisch in der Bibliothek und ist über `TemplateDetail` aufrufbar — keine Routing- oder Renderer-Änderungen nötig.
-
-### Folge-Templates (optional, separat)
-Wenn dieses Muster passt, kann ich nach demselben Schema Vertiefungs-Templates für die Punkte **2–12** des Baums anlegen (jedes als eigenständiges Template, damit der Psychologe gezielt Module einsetzen kann).
+- **Datei:** nur `src/lib/templates.ts`
+- **Entfernen:** `fallkonzept-depression-biografie` (10 Slides)
+- **Hinzufügen:** 6 neue Template-Objekte direkt nach `fallkonzept-depression-diagnostik-indikation`
+- **Icons:** ausschließlich vorhandene aus `slideIcons.ts` (`brain`, `lightbulb`, `target`, `leaf`, `breath`, `hands`, `shield`, `sun`, `cycle`, `compass`, `scale`, `heart`, `steps`, `question`)
+- **Approach:** "KVT" für 4.1–4.3, 4.6 · "IPT" für 4.4 · "MBCT/ACT" für 4.5
+- **Category:** "Intervention" für 4.2–4.5 · "Psychoedukation" für 4.1 · "Modell" für 4.6
 
