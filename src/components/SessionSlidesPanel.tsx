@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Presentation, ChevronLeft, ChevronRight, X, FileText, Layers } from "lucide-react";
+import { Sparkles, Presentation, ChevronLeft, ChevronRight, X, FileText, Layers, Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
