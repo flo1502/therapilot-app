@@ -206,14 +206,33 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
           <p className="text-xs text-muted-foreground mt-1.5">{step.description}</p>
         </div>
 
-        <Button onClick={askAi} disabled={aiBusy || !patientId} variant="outline" size="sm" className="w-full">
+        <div className="relative">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9 pr-8"
+            placeholder="Templates & Folien durchsuchen…"
+            value={searchQ}
+            onChange={e => setSearchQ(e.target.value)}
+          />
+          {searchQ && (
+            <button
+              onClick={() => setSearchQ("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Suche leeren"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+
+        <Button onClick={askAi} disabled={aiBusy || !patientId || !!searchQ.trim()} variant="outline" size="sm" className="w-full">
           <Sparkles className="size-4 mr-2" />
           {aiBusy ? "AI sucht passende Folien…" : "AI-Vorschlag (basierend auf Notiz)"}
         </Button>
 
         {visibleSlides.length === 0 ? (
           <div className="text-sm text-muted-foreground italic py-4 text-center">
-            Keine passenden Folien gefunden.
+            {searchQ.trim() ? "Keine Treffer für deine Suche." : "Keine passenden Folien gefunden."}
           </div>
         ) : (
           <div className="space-y-2">
