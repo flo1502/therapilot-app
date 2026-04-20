@@ -112,16 +112,9 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     try {
       // Kandidaten zusammenstellen (kompakt, ohne sensible Daten)
       const candidates: any[] = [];
-      step.templateIds.forEach(tid => {
-        const t = TEMPLATES.find(x => x.id === tid);
-        if (!t) return;
+      TEMPLATES.forEach(t => {
         t.slides.forEach((s, idx) => {
           candidates.push({ source: "template", sourceId: t.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
-        });
-      });
-      (patientDecks ?? []).forEach(d => {
-        d.slides.forEach((s, idx) => {
-          candidates.push({ source: "deck", sourceId: d.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
         });
       });
 
