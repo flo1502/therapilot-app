@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, Slide } from "@/lib/db";
+import { Slide } from "@/lib/db";
 import { TEMPLATES } from "@/lib/templates";
 import { TREATMENT_STEPS, getTreatmentStep } from "@/lib/treatmentSteps";
 import { callAi, SuggestedSlides, SuggestedSlideRef } from "@/lib/ai/provider";
@@ -35,11 +34,6 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const [presentIndex, setPresentIndex] = useState<number | null>(null);
   const [searchQ, setSearchQ] = useState("");
 
-  const patientDecks = useLiveQuery(
-    () => (patientId ? db.decks.where("patientId").equals(patientId).toArray() : Promise.resolve([])),
-    [patientId],
-  );
-
   const step = getTreatmentStep(stepId)!;
 
   // Reset AI suggestions when step changes
@@ -47,19 +41,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
 
   const defaultSlides = useMemo<ResolvedSlide[]>(() => {
     const out: ResolvedSlide[] = [];
-    // Aus Patienten-Decks: erste Folie passender Decks (per Tag-Match)
-    (patientDecks ?? []).forEach(d => {
-      const matches = step.tags.some(t => d.title.toLowerCase().includes(t.toLowerCase()) || d.topic?.toLowerCase().includes(t.toLowerCase()));
-      if (matches && d.slides[0]) {
-        out.push({
-          key: `d:${d.id}:0`,
-          source: "deck",
-          sourceLabel: `Patient · ${d.title}`,
-          slide: d.slides[0],
-        });
-      }
-    });
-    // Aus Templates
+    // Nur aus Templates der Bibliothek
     step.templateIds.forEach(tid => {
       const t = TEMPLATES.find(x => x.id === tid);
       if (!t) return;
@@ -74,36 +56,25 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
       });
     });
     return out.slice(0, 3);
-  }, [step, patientDecks]);
+  }, [step]);
 
   const aiResolved = useMemo<ResolvedSlide[]>(() => {
     if (!aiPicks) return [];
     const out: ResolvedSlide[] = [];
     aiPicks.forEach((p, i) => {
-      if (p.source === "template") {
-        const t = TEMPLATES.find(x => x.id === p.sourceId);
-        const s = t?.slides[p.slideIndex];
-        if (t && s) out.push({
-          key: `ai-t:${i}`,
-          source: "template",
-          sourceLabel: `Template · ${t.title}`,
-          slide: { id: `${t.id}-${p.slideIndex}`, title: s.title, bullets: s.bullets, notes: s.notes },
-          reason: p.reason,
-        });
-      } else {
-        const d = (patientDecks ?? []).find(x => x.id === p.sourceId);
-        const s = d?.slides[p.slideIndex];
-        if (d && s) out.push({
-          key: `ai-d:${i}`,
-          source: "deck",
-          sourceLabel: `Patient · ${d.title}`,
-          slide: s,
-          reason: p.reason,
-        });
-      }
+      if (p.source !== "template") return;
+      const t = TEMPLATES.find(x => x.id === p.sourceId);
+      const s = t?.slides[p.slideIndex];
+      if (t && s) out.push({
+        key: `ai-t:${i}`,
+        source: "template",
+        sourceLabel: `Template · ${t.title}`,
+        slide: { id: `${t.id}-${p.slideIndex}`, title: s.title, bullets: s.bullets, notes: s.notes },
+        reason: p.reason,
+      });
     });
     return out;
-  }, [aiPicks, patientDecks]);
+  }, [aiPicks]);
 
   const searchResults = useMemo<ResolvedSlide[]>(() => {
     const q = searchQ.trim().toLowerCase();
@@ -123,21 +94,8 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
         }
       });
     });
-    (patientDecks ?? []).forEach(d => {
-      d.slides.forEach((s, idx) => {
-        const m = [d.title, s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
-        if (m) {
-          out.push({
-            key: `s-d:${d.id}:${idx}`,
-            source: "deck",
-            sourceLabel: `Patient · ${d.title}`,
-            slide: s,
-          });
-        }
-      });
-    });
     return out.slice(0, 20);
-  }, [searchQ, patientDecks]);
+  }, [searchQ]);
 
   const visibleSlides = searchQ.trim()
     ? searchResults
@@ -148,16 +106,9 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     try {
       // Kandidaten zusammenstellen (kompakt, ohne sensible Daten)
       const candidates: any[] = [];
-      step.templateIds.forEach(tid => {
-        const t = TEMPLATES.find(x => x.id === tid);
-        if (!t) return;
+      TEMPLATES.forEach(t => {
         t.slides.forEach((s, idx) => {
           candidates.push({ source: "template", sourceId: t.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
-        });
-      });
-      (patientDecks ?? []).forEach(d => {
-        d.slides.forEach((s, idx) => {
-          candidates.push({ source: "deck", sourceId: d.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
         });
       });
 
