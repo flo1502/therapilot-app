@@ -34,11 +34,6 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const [presentIndex, setPresentIndex] = useState<number | null>(null);
   const [searchQ, setSearchQ] = useState("");
 
-  const patientDecks = useLiveQuery(
-    () => (patientId ? db.decks.where("patientId").equals(patientId).toArray() : Promise.resolve([])),
-    [patientId],
-  );
-
   const step = getTreatmentStep(stepId)!;
 
   // Reset AI suggestions when step changes
