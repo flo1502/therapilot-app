@@ -1286,6 +1286,148 @@ export const TEMPLATES: Template[] = [
       },
     ],
   },
+  {
+    id: "fallkonzept-depression-diagnostik-indikation",
+    title: "Fallkonzept Depression – 3. Diagnostik & Indikation",
+    approach: "KVT",
+    category: "Psychoedukation",
+    tags: ["Diagnostik", "Indikation", "Testverfahren", "Komorbidität", "Setting"],
+    description: "Vertiefung zu Punkt 3 des Fallkonzept-Baums: Anamnese, Testdiagnostik, Differentialdiagnose, Komorbidität, Therapieindikation und Setting.",
+    slides: [
+      {
+        title: "3. Diagnostik & Indikation",
+        bullets: ["Anamnese", "Tests", "Differentialdiagnose", "Komorbidität", "Indikation", "Setting"],
+        layout: "headline", iconKey: "compass",
+        layoutData: {
+          headline: "Vom Symptom zur Therapieentscheidung.",
+          subline: "Wie sichern wir die Diagnose – und wofür entscheiden wir uns dann?",
+        },
+      },
+      {
+        title: "Inhalt – 6 Bausteine",
+        bullets: [
+          "3.1 Anamneseerhebung",
+          "3.2 Testdiagnostik",
+          "3.3 Differentialdiagnose",
+          "3.4 Komorbidität",
+          "3.5 Therapieindikation",
+          "3.6 Setting & Frequenz",
+        ],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "3.1 Anamnese", description: "Eigen-, Fremd-, Familien-, biografische Anamnese." },
+          { title: "3.2 Tests", description: "Standardisierte Verfahren zur Schwere- & Verlaufsmessung." },
+          { title: "3.3 Differentialdiagnose", description: "Was es sein könnte – und was es nicht ist." },
+          { title: "3.4 Komorbidität", description: "Zusatzdiagnosen, die Behandlung beeinflussen." },
+          { title: "3.5 Indikation", description: "Psychotherapie · Medikation · kombiniert · stationär?" },
+          { title: "3.6 Setting", description: "Einzel/Gruppe, Frequenz, Dauer, Notfallregelungen." },
+        ] },
+      },
+      {
+        title: "3.1 Anamneseerhebung",
+        bullets: ["Eigenanamnese", "Fremdanamnese", "Familienanamnese", "Biographische Anamnese"],
+        layout: "model", iconKey: "compass",
+        layoutData: { nodes: [
+          { label: "Eigen", description: "Subjektive Sicht: Beschwerden, Verlauf, Auslöser" },
+          { label: "Fremd", description: "Angehörige, Hausarzt – Verhaltensbeobachtung" },
+          { label: "Familie", description: "Psychische Erkrankungen in der Familie" },
+          { label: "Biografisch", description: "Lebenslinie, kritische Ereignisse, Ressourcen" },
+        ] },
+      },
+      {
+        title: "3.2 Testdiagnostik",
+        bullets: [
+          "BDI-II – Beck-Depressions-Inventar (Selbstbeurteilung)",
+          "PHQ-9 – Patient Health Questionnaire (Screening & Verlauf)",
+          "HAMD/HDRS – Hamilton-Depressions-Skala (Fremdbeurteilung)",
+          "SCL-90-R – allgemeine Symptombelastung",
+          "Zusätzlich: Suizidalität (z. B. C-SSRS), Komorbidität",
+        ],
+        layout: "bullets", iconKey: "lightbulb",
+      },
+      {
+        title: "3.3 Differentialdiagnose",
+        bullets: ["Was es nicht ist – sorgfältig abgrenzen"],
+        layout: "model", iconKey: "scale",
+        layoutData: { nodes: [
+          { label: "Bipolar", description: "Hypomane/manische Phasen in der Vorgeschichte?" },
+          { label: "Anpassungsstörung", description: "Klarer Auslöser, kürzere Dauer, geringere Schwere" },
+          { label: "Trauerreaktion", description: "Normaler Trauerverlauf vs. Komplizierte Trauer" },
+          { label: "Somatisch / Substanz", description: "Schilddrüse, Anämie, Medikamente, Alkohol" },
+        ] },
+      },
+      {
+        title: "3.4 Komorbidität – häufig kombiniert",
+        bullets: [
+          "Angststörungen (ca. 50 % – häufigste Komorbidität)",
+          "Substanzgebrauchsstörungen (Alkohol, Sedativa)",
+          "Persönlichkeitsstörungen (v. a. Cluster B/C)",
+          "Somatische Erkrankungen (Schmerz, kardiovaskulär, Diabetes)",
+          "Schlafstörungen als eigenständige Diagnose",
+        ],
+        layout: "bullets", iconKey: "shield",
+      },
+      {
+        title: "3.5 Therapieindikation",
+        bullets: ["Leichte vs. schwere Depression"],
+        layout: "before-after", iconKey: "target",
+        layoutData: {
+          before: {
+            title: "Leicht – mittelgradig",
+            items: [
+              "Psychotherapie als 1. Wahl (KVT, IPT)",
+              "Watchful Waiting bei sehr leichter Form",
+              "Aktivierung & Psychoedukation",
+              "Medikation optional",
+            ],
+          },
+          after: {
+            title: "Schwer / chronisch",
+            items: [
+              "Kombinationstherapie (Psychotherapie + Antidepressivum)",
+              "Stationär bei Suizidalität / fehlender Tagesstruktur",
+              "Ggf. EKT bei Therapieresistenz",
+              "Eng getaktetes Monitoring",
+            ],
+          },
+        },
+      },
+      {
+        title: "3.6 Setting & Frequenz",
+        bullets: ["Setting", "Frequenz", "Dauer", "Notfall"],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "Setting", description: "Einzel · Gruppe · ambulant / teilstationär / stationär." },
+          { title: "Frequenz", description: "Akut: 1–2× pro Woche · Erhaltung: 14-tägig · Booster: monatlich." },
+          { title: "Dauer", description: "KVT: ca. 25–45 Sitzungen · ggf. Verlängerung bei Komorbidität." },
+          { title: "Notfall", description: "Erreichbarkeit, Krisennummern, Notfallplan schriftlich vereinbaren." },
+        ] },
+      },
+      {
+        title: "Indikations-Zusammenfassung",
+        bullets: ["Vier Säulen der Entscheidung"],
+        layout: "vicious-cycle", iconKey: "shield",
+        layoutData: {
+          centerLabel: "Indikation",
+          cycleNodes: [
+            { label: "Diagnose gesichert", description: "Kriterien · Tests · DD" },
+            { label: "Schweregrad", description: "Leicht · mittel · schwer" },
+            { label: "Komorbidität", description: "Beeinflusst Setting & Methode" },
+            { label: "Ressourcen", description: "Motivation, Umfeld, Adhärenz" },
+          ],
+        },
+      },
+      {
+        title: "Reflexion",
+        bullets: ["Welches Setting & welche Methode passt zu dieser Person?"],
+        layout: "question", iconKey: "question",
+        layoutData: {
+          headline: "Welche Indikation begründen wir – und warum?",
+          subline: "Diagnose · Schwere · Komorbidität · Ressourcen müssen zusammenpassen.",
+        },
+      },
+    ],
+  },
 ];
 
 export function getTemplate(id: string) {
