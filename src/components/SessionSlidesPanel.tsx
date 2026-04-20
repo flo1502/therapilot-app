@@ -35,16 +35,25 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const [searchQ, setSearchQ] = useState("");
 
   const step = getTreatmentStep(stepId)!;
+  const standardTemplateIds = useMemo(
+    () => new Set(TREATMENT_STEPS.flatMap(({ templateIds }) => templateIds)),
+    []
+  );
+  const standardTemplates = useMemo(
+    () => TEMPLATES.filter((template) => standardTemplateIds.has(template.id)),
+    [standardTemplateIds]
+  );
+  const stepTemplates = useMemo(
+    () => standardTemplates.filter((template) => step.templateIds.includes(template.id)),
+    [standardTemplates, step.templateIds]
+  );
 
   // Reset AI suggestions when step changes
   useEffect(() => { setAiPicks(null); }, [stepId]);
 
   const defaultSlides = useMemo<ResolvedSlide[]>(() => {
     const out: ResolvedSlide[] = [];
-    // Nur aus Templates der Bibliothek
-    step.templateIds.forEach(tid => {
-      const t = TEMPLATES.find(x => x.id === tid);
-      if (!t) return;
+    stepTemplates.forEach((t) => {
       // erste 1-2 Slides je Template
       t.slides.slice(0, 2).forEach((s, idx) => {
         out.push({
@@ -74,13 +83,13 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
       });
     });
     return out;
-  }, [aiPicks]);
+  }, [aiPicks, step.templateIds]);
 
   const searchResults = useMemo<ResolvedSlide[]>(() => {
     const q = searchQ.trim().toLowerCase();
     if (!q) return [];
     const out: ResolvedSlide[] = [];
-    TEMPLATES.forEach(t => {
+    standardTemplates.forEach(t => {
       const tplMatch = [t.title, t.description, t.approach, t.category, ...t.tags].join(" ").toLowerCase().includes(q);
       t.slides.forEach((s, idx) => {
         const slideMatch = [s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
@@ -95,7 +104,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
       });
     });
     return out.slice(0, 20);
-  }, [searchQ]);
+  }, [searchQ, standardTemplates]);
 
   const visibleSlides = searchQ.trim()
     ? searchResults
@@ -106,7 +115,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     try {
       // Kandidaten zusammenstellen (kompakt, ohne sensible Daten)
       const candidates: any[] = [];
-      TEMPLATES.forEach(t => {
+      stepTemplates.forEach(t => {
         t.slides.forEach((s, idx) => {
           candidates.push({ source: "template", sourceId: t.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
         });
@@ -161,7 +170,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9 pr-8"
-            placeholder="Templates & Folien durchsuchen…"
+            placeholder="Standard-Templates & Folien durchsuchen…"
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
           />
