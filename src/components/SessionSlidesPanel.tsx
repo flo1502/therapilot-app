@@ -35,17 +35,43 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const [searchQ, setSearchQ] = useState("");
 
   const step = getTreatmentStep(stepId)!;
-  const standardTemplateIds = useMemo(
-    () => new Set(TREATMENT_STEPS.flatMap(({ templateIds }) => templateIds)),
+  const libraryTemplates = useMemo(
+    () => TEMPLATES.filter((template) => !template.id.startsWith("behandlung-")),
     []
   );
-  const standardTemplates = useMemo(
-    () => TEMPLATES.filter((template) => standardTemplateIds.has(template.id)),
-    [standardTemplateIds]
-  );
   const stepTemplates = useMemo(
-    () => standardTemplates.filter((template) => step.templateIds.includes(template.id)),
-    [standardTemplates, step.templateIds]
+    () => {
+      const keywords = [step.label, step.description, approach, ...step.tags]
+        .filter(Boolean)
+        .flatMap((value) => String(value).toLowerCase().split(/[^\p{L}\p{N}]+/u))
+        .filter((value) => value.length >= 4);
+
+      return libraryTemplates
+        .map((template) => {
+          const haystack = [
+            template.title,
+            template.description,
+            template.approach,
+            template.category,
+            ...template.tags,
+            ...template.slides.flatMap((slide) => [slide.title, ...slide.bullets]),
+          ].join(" ").toLowerCase();
+
+          const score = keywords.reduce((sum, keyword) => {
+            if (!haystack.includes(keyword)) return sum;
+            const strongMatch =
+              template.title.toLowerCase().includes(keyword) ||
+              template.tags.some((tag) => tag.toLowerCase().includes(keyword));
+            return sum + (strongMatch ? 3 : 1);
+          }, 0) + (approach && template.approach.toLowerCase() === approach.toLowerCase() ? 4 : 0);
+
+          return { template, score };
+        })
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score || b.template.slides.length - a.template.slides.length)
+        .map(({ template }) => template);
+    },
+    [approach, libraryTemplates, step.description, step.label, step.tags]
   );
 
   // Reset AI suggestions when step changes
@@ -53,9 +79,8 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
 
   const defaultSlides = useMemo<ResolvedSlide[]>(() => {
     const out: ResolvedSlide[] = [];
-    stepTemplates.forEach((t) => {
-      // erste 1-2 Slides je Template
-      t.slides.slice(0, 2).forEach((s, idx) => {
+    stepTemplates.slice(0, 3).forEach((t) => {
+      t.slides.slice(0, Math.min(t.slides.length, 4)).forEach((s, idx) => {
         out.push({
           key: `t:${t.id}:${idx}`,
           source: "template",
@@ -64,8 +89,8 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
         });
       });
     });
-    return out.slice(0, 3);
-  }, [step]);
+    return out.slice(0, 8);
+  }, [stepTemplates]);
 
   const aiResolved = useMemo<ResolvedSlide[]>(() => {
     if (!aiPicks) return [];
@@ -88,24 +113,39 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const searchResults = useMemo<ResolvedSlide[]>(() => {
     const q = searchQ.trim().toLowerCase();
     if (!q) return [];
-    const out: ResolvedSlide[] = [];
-    // Suche über die GESAMTE aktuelle Template-Bibliothek
-    TEMPLATES.forEach(t => {
+    const ranked: Array<{ slide: ResolvedSlide; score: number }> = [];
+    libraryTemplates.forEach(t => {
       const tplMatch = [t.title, t.description, t.approach, t.category, ...t.tags].join(" ").toLowerCase().includes(q);
       t.slides.forEach((s, idx) => {
-        const slideMatch = [s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
+        const slideTitle = s.title.toLowerCase();
+        const slideBody = s.bullets.join(" ").toLowerCase();
+        const slideMatch = [slideTitle, slideBody].join(" ").includes(q);
         if (tplMatch || slideMatch) {
-          out.push({
-            key: `s-t:${t.id}:${idx}`,
-            source: "template",
-            sourceLabel: `Template · ${t.title}`,
-            slide: { id: `${t.id}-${idx}`, title: s.title, bullets: s.bullets, notes: s.notes },
+          const score =
+            (t.title.toLowerCase() === q ? 20 : 0) +
+            (t.title.toLowerCase().includes(q) ? 12 : 0) +
+            (slideTitle.includes(q) ? 10 : 0) +
+            (tplMatch ? 6 : 0) +
+            (slideBody.includes(q) ? 4 : 0) +
+            Math.min(t.slides.length, 10) / 10;
+
+          ranked.push({
+            score,
+            slide: {
+              key: `s-t:${t.id}:${idx}`,
+              source: "template",
+              sourceLabel: `Template · ${t.title}`,
+              slide: { id: `${t.id}-${idx}`, title: s.title, bullets: s.bullets, notes: s.notes },
+            },
           });
         }
       });
     });
-    return out.slice(0, 20);
-  }, [searchQ]);
+    return ranked
+      .sort((a, b) => b.score - a.score)
+      .map(({ slide }) => slide)
+      .slice(0, 20);
+  }, [libraryTemplates, searchQ]);
 
   const visibleSlides = searchQ.trim()
     ? searchResults
@@ -116,8 +156,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     try {
       // Kandidaten zusammenstellen (kompakt, ohne sensible Daten)
       const candidates: any[] = [];
-      // AI darf aus der gesamten Bibliothek wählen
-      TEMPLATES.forEach(t => {
+      libraryTemplates.forEach(t => {
         t.slides.forEach((s, idx) => {
           candidates.push({ source: "template", sourceId: t.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
         });
