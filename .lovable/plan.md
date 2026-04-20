@@ -1,35 +1,38 @@
 
 
-## Plan: Neues Template "Schlaf & Zirkadiane Rhythmik bei Depression"
+Der User möchte, dass ich für **Punkt 1 "Diagnostik / Störungsbild"** des Fallkonzept-Baums passende, ausführlich visualisierte Slides erstelle — und zwar mit einer klaren Struktur, die dem Inhaltsverzeichnis (1.1 bis 1.5) folgt. Das wird ein eigenes, fokussiertes Sub-Template, das tiefer in die Diagnostik einsteigt als die eine Übersichts-Slide im großen Fallkonzept-Template.
 
-Ich erstelle ein neues, vollständig visualisiertes Template für die Bibliothek mit Fokus auf den Zusammenhang zwischen Schlaf, zirkadianer Rhythmik und Depression — inkl. zwei generierter Schaubilder.
+## Plan: Neues Template "Fallkonzept Depression – 1. Diagnostik / Störungsbild (Vertiefung)"
 
-### Inhaltliche Struktur (12 Slides)
+Ein eigenständiges Vertiefungs-Template mit **9 Slides**, das exakt der Baumstruktur 1.x folgt. Jeder Unterpunkt erhält mindestens eine eigene Slide mit passendem Visualisierungs-Layout.
 
-1. **Titel-Slide** (`headline`) — "Schlaf, innere Uhr & Depression" + Subline
-2. **Was ist die zirkadiane Uhr?** (`image`) — Schaubild: 24-Stunden-Uhr mit Cortisol-, Melatonin- und Temperatur-Kurve
-3. **Die zwei Steuerungssysteme** (`model`) — Knoten: Schlafdruck (Prozess S) → Innere Uhr (Prozess C) → Schlaf-Wach-Rhythmus
-4. **Wie Depression den Schlaf stört** (`vicious-cycle`) — Zentrum "Depression & Schlaf", 4 Knoten: Grübeln, früh Erwachen, Tagesmüdigkeit, Antriebslosigkeit
-5. **Gehirn & Schlaf bei Depression** (`image`) — Schaubild: Gehirn mit SCN (suprachiasmatischer Kern), Zirbeldrüse, präfrontalem Cortex
-6. **Typische Schlafmuster bei Depression** (`before-after`) — Gesund vs. Depressiv (Einschlafzeit, Tiefschlaf, REM, Früh­erwachen)
-7. **Licht als Taktgeber** (`headline`) — "Licht ist das stärkste Signal für Ihre innere Uhr" + Subline mit Lux-Werten
-8. **Schlafhygiene — die 7 Säulen** (`steps`) — Konkrete Schritte: feste Aufstehzeit, Morgenlicht, Bewegung, Koffein-Stop, Bildschirme, kühles Schlafzimmer, Wind-Down-Routine
-9. **Bett-Restriktion & Stimuluskontrolle** (`steps`) — KVT-I Kernschritte
-10. **Chronotherapie-Optionen** (`model`) — Lichttherapie → Wachtherapie → Schlafphasenvorverlagerung
-11. **Reflexionsfrage** (`question`) — "Welcher Ihrer Schlaf-Bausteine ist gerade am instabilsten?"
-12. **Mein Schlaf-Wochenplan** (`steps`) — Konkrete Umsetzung für die nächste Woche
+### Slide-Struktur (folgt Inhaltsverzeichnis)
+
+| # | Slide | Punkt | Layout | Visualisierung |
+|---|-------|-------|--------|----------------|
+| 1 | Titel & Übersicht | 1. | `headline` | Hauptbotschaft + Subline mit den 5 Unterbereichen |
+| 2 | Inhaltsverzeichnis Diagnostik | 1.1–1.5 | `steps` | 5 nummerierte Schritte als Kapitelübersicht |
+| 3 | Diagnose nach ICD-10 / ICD-11 | 1.1 | `before-after` | ICD-10 (F32/F33) vs. ICD-11 (6A70/6A71) Gegenüberstellung |
+| 4 | Schweregrad-Spektrum | 1.2 | `model` | 3 Knoten: leicht → mittel → schwer (mit Symptomanzahl-Kriterien) |
+| 5 | Episodenverlauf | 1.3 | `before-after` | Erstepisode vs. Rezidivierend (Verlaufsmuster, Prognose) |
+| 6 | Leitsymptome (Haupttrias) | 1.4 | `model` | 3 Knoten: gedrückte Stimmung · Antriebsmangel · Interessenverlust |
+| 7 | Zusatzsymptome – Überblick | 1.5 | `bullets` | Alle 5 Zusatzsymptome mit Kurzerklärung |
+| 8 | Zusatzsymptome im Detail | 1.5 | `steps` | 5 Schritte: Schlaf · Appetit · Konzentration · Schuld · Suizidalität – jeweils mit klinischen Hinweisen |
+| 9 | Diagnostik-Zusammenfassung | 1. | `vicious-cycle` | Zentrum „Diagnose Depression", 4 Knoten: Symptomdauer ≥2 Wo · Funktionseinschränkung · Leidensdruck · Differentialdiagnose |
 
 ### Technische Umsetzung
 
-**Neue Dateien:**
-- `src/assets/zirkadiane-uhr.jpg` — generiert via Lovable AI (`google/gemini-3-pro-image-preview`): 24h-Kreis mit beschrifteten Hormonkurven, deutscher Beschriftung, klinisch-ruhiger Stil passend zu vorhandenen Assets
-- `src/assets/gehirn-schlaf.jpg` — generiert via Lovable AI: anatomische Gehirndarstellung mit hervorgehobenem suprachiasmatischen Kern (SCN), Zirbeldrüse (Melatonin) und präfrontalem Cortex, deutsche Labels
+**Geänderte Datei (nur eine):**
+- `src/lib/templates.ts` — neues Template-Objekt `fallkonzept-depression-diagnostik` mit Approach `KVT`, eingefügt direkt nach `fallkonzept-depression-vt`
 
-**Geänderte Dateien:**
-- `src/lib/templates.ts` — neues Template-Objekt `schlaf-depression` mit Approach `KVT`, Import der beiden neuen Bilder, vollständig strukturierte `layoutData` für jede Slide
-- Keine Änderungen an Renderer/Schema nötig — alle benötigten Layouts (`image`, `model`, `vicious-cycle`, `before-after`, `steps`, `headline`, `question`) sind bereits vorhanden
+**Keine neuen Bilder nötig** — alle Layouts sind rein strukturell und nutzen vorhandene Renderer (`headline`, `steps`, `before-after`, `model`, `bullets`, `vicious-cycle`).
 
-**Bildgenerierung:** Per AI-Gateway-Skill mit Pro-Image-Modell für lesbare deutsche Beschriftungen (gleicher Stil wie `emotionales-netzwerk.jpg` und `gehirn-amygdala.jpg`).
+**Icons (aus `slideIcons.ts`):** `compass` (Diagnose), `scale` (Schweregrad), `cycle` (Verlauf), `target` (Leitsymptome), `brain`, `moon` (Schlaf), `heart` (Suizidalität), `shield` (Zusammenfassung).
 
-**Stil-Konsistenz:** Icons aus vorhandener `slideIcons.ts` (z. B. `clock`, `brain`, `moon`, `sun`, `heart`, `shield`).
+**Klinische Tiefe:** Jede Slide enthält konkrete, klinisch korrekte Inhalte (z. B. ICD-Kriterien, Symptomanzahl pro Schweregrad, Differentialdiagnostik-Hinweise) — nicht nur Stichworte aus dem Baum, sondern ausgearbeitete Inhalte für die Patientenkommunikation.
+
+**Konsistenz:** Das Template erscheint automatisch in der Bibliothek und ist über `TemplateDetail` aufrufbar — keine Routing- oder Renderer-Änderungen nötig.
+
+### Folge-Templates (optional, separat)
+Wenn dieses Muster passt, kann ich nach demselben Schema Vertiefungs-Templates für die Punkte **2–12** des Baums anlegen (jedes als eigenständiges Template, damit der Psychologe gezielt Module einsetzen kann).
 
