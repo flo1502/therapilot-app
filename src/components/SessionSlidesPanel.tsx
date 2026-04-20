@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Presentation, ChevronLeft, ChevronRight, X, FileText, Layers } from "lucide-react";
+import { Sparkles, Presentation, ChevronLeft, ChevronRight, X, FileText, Layers, Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -32,6 +33,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
   const [aiBusy, setAiBusy] = useState(false);
   const [aiPicks, setAiPicks] = useState<SuggestedSlideRef[] | null>(null);
   const [presentIndex, setPresentIndex] = useState<number | null>(null);
+  const [searchQ, setSearchQ] = useState("");
 
   const patientDecks = useLiveQuery(
     () => (patientId ? db.decks.where("patientId").equals(patientId).toArray() : Promise.resolve([])),
@@ -103,7 +105,43 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     return out;
   }, [aiPicks, patientDecks]);
 
-  const visibleSlides = aiResolved.length > 0 ? aiResolved : defaultSlides;
+  const searchResults = useMemo<ResolvedSlide[]>(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return [];
+    const out: ResolvedSlide[] = [];
+    TEMPLATES.forEach(t => {
+      const tplMatch = [t.title, t.description, t.approach, t.category, ...t.tags].join(" ").toLowerCase().includes(q);
+      t.slides.forEach((s, idx) => {
+        const slideMatch = [s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
+        if (tplMatch || slideMatch) {
+          out.push({
+            key: `s-t:${t.id}:${idx}`,
+            source: "template",
+            sourceLabel: `Template · ${t.title}`,
+            slide: { id: `${t.id}-${idx}`, title: s.title, bullets: s.bullets, notes: s.notes },
+          });
+        }
+      });
+    });
+    (patientDecks ?? []).forEach(d => {
+      d.slides.forEach((s, idx) => {
+        const m = [d.title, s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
+        if (m) {
+          out.push({
+            key: `s-d:${d.id}:${idx}`,
+            source: "deck",
+            sourceLabel: `Patient · ${d.title}`,
+            slide: s,
+          });
+        }
+      });
+    });
+    return out.slice(0, 20);
+  }, [searchQ, patientDecks]);
+
+  const visibleSlides = searchQ.trim()
+    ? searchResults
+    : aiResolved.length > 0 ? aiResolved : defaultSlides;
 
   const askAi = async () => {
     setAiBusy(true);
@@ -168,14 +206,33 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
           <p className="text-xs text-muted-foreground mt-1.5">{step.description}</p>
         </div>
 
-        <Button onClick={askAi} disabled={aiBusy || !patientId} variant="outline" size="sm" className="w-full">
+        <div className="relative">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9 pr-8"
+            placeholder="Templates & Folien durchsuchen…"
+            value={searchQ}
+            onChange={e => setSearchQ(e.target.value)}
+          />
+          {searchQ && (
+            <button
+              onClick={() => setSearchQ("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Suche leeren"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+
+        <Button onClick={askAi} disabled={aiBusy || !patientId || !!searchQ.trim()} variant="outline" size="sm" className="w-full">
           <Sparkles className="size-4 mr-2" />
           {aiBusy ? "AI sucht passende Folien…" : "AI-Vorschlag (basierend auf Notiz)"}
         </Button>
 
         {visibleSlides.length === 0 ? (
           <div className="text-sm text-muted-foreground italic py-4 text-center">
-            Keine passenden Folien gefunden.
+            {searchQ.trim() ? "Keine Treffer für deine Suche." : "Keine passenden Folien gefunden."}
           </div>
         ) : (
           <div className="space-y-2">
