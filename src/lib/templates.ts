@@ -995,6 +995,153 @@ export const TEMPLATES: Template[] = [
       },
     ],
   },
+  {
+    id: "fallkonzept-depression-diagnostik",
+    title: "Fallkonzept Depression – 1. Diagnostik / Störungsbild",
+    approach: "KVT",
+    category: "Psychoedukation",
+    tags: ["Diagnostik", "ICD-10", "ICD-11", "Depression", "Symptomatik"],
+    description: "Vertiefung zu Punkt 1 des Fallkonzept-Baums: Diagnose, Schweregrad, Episodenverlauf, Leit- und Zusatzsymptome – klinisch ausgearbeitet für die Patientenkommunikation.",
+    slides: [
+      {
+        title: "1. Diagnostik & Störungsbild",
+        bullets: ["Diagnose", "Schweregrad", "Episodenverlauf", "Leitsymptome", "Zusatzsymptome"],
+        layout: "headline", iconKey: "compass",
+        layoutData: {
+          headline: "Was genau verstehen wir unter Depression?",
+          subline: "Diagnose · Schweregrad · Verlauf · Leit- und Zusatzsymptome",
+        },
+      },
+      {
+        title: "Inhalt – die 5 diagnostischen Bausteine",
+        bullets: [
+          "1.1 Diagnose nach ICD-10 / ICD-11",
+          "1.2 Schweregrad",
+          "1.3 Episodenverlauf",
+          "1.4 Leitsymptome",
+          "1.5 Zusatzsymptome",
+        ],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "1.1 Diagnose", description: "Klassifikation nach ICD-10 bzw. ICD-11." },
+          { title: "1.2 Schweregrad", description: "Leicht – mittel – schwer (mit/ohne psychotische Symptome)." },
+          { title: "1.3 Episodenverlauf", description: "Erstepisode oder rezidivierend." },
+          { title: "1.4 Leitsymptome", description: "Die diagnostische Haupttrias." },
+          { title: "1.5 Zusatzsymptome", description: "Schlaf, Appetit, Konzentration, Schuld, Suizidalität." },
+        ] },
+      },
+      {
+        title: "1.1 Diagnose – ICD-10 vs. ICD-11",
+        bullets: [
+          "ICD-10: F32 (Episode), F33 (rezidivierend)",
+          "ICD-11: 6A70 (Episode), 6A71 (rezidivierend)",
+        ],
+        layout: "before-after", iconKey: "compass",
+        layoutData: {
+          before: {
+            title: "ICD-10 (bisher)",
+            items: [
+              "F32 – Depressive Episode",
+              "F33 – Rezidivierende depressive Störung",
+              "Schwere über Symptomanzahl definiert",
+              "Trennung Haupt-/Zusatzsymptome",
+            ],
+          },
+          after: {
+            title: "ICD-11 (neu)",
+            items: [
+              "6A70 – Einzelne Episode",
+              "6A71 – Rezidivierende Störung",
+              "Cluster: affektiv · kognitiv · neurovegetativ",
+              "Stärker dimensionale Beurteilung",
+            ],
+          },
+        },
+      },
+      {
+        title: "1.2 Schweregrad – das Spektrum",
+        bullets: ["Leicht", "Mittelgradig", "Schwer"],
+        layout: "model", iconKey: "scale",
+        layoutData: { nodes: [
+          { label: "Leicht", description: "2 Leit- + 2 Zusatzsymptome · Alltag mit Mühe bewältigbar" },
+          { label: "Mittel", description: "2 Leit- + 3–4 Zusatzsymptome · deutliche Einschränkung" },
+          { label: "Schwer", description: "3 Leit- + ≥4 Zusatzsymptome · Alltag kaum möglich, ggf. psychotisch" },
+        ] },
+      },
+      {
+        title: "1.3 Episodenverlauf",
+        bullets: ["Erstepisode", "Rezidivierend"],
+        layout: "before-after", iconKey: "cycle",
+        layoutData: {
+          before: {
+            title: "Erstepisode",
+            items: [
+              "Erstmaliges Auftreten",
+              "Häufig durch klaren Auslöser",
+              "Gute Prognose bei früher Behandlung",
+              "Psychoedukation besonders wichtig",
+            ],
+          },
+          after: {
+            title: "Rezidivierend",
+            items: [
+              "≥2 Episoden mit Remission dazwischen",
+              "Erhöhtes Wiedererkrankungsrisiko",
+              "Fokus auf Rückfallprophylaxe",
+              "Ggf. Erhaltungstherapie / Medikation",
+            ],
+          },
+        },
+      },
+      {
+        title: "1.4 Leitsymptome – die Haupttrias",
+        bullets: ["Gedrückte Stimmung", "Antriebsmangel", "Interessen-/Freudverlust"],
+        layout: "model", iconKey: "target",
+        layoutData: { nodes: [
+          { label: "Stimmung", description: "Gedrückt, traurig, leer – fast täglich, ≥2 Wochen" },
+          { label: "Antrieb", description: "Energielosigkeit, schnelle Erschöpfung" },
+          { label: "Interesse", description: "Freudverlust an früher wichtigen Aktivitäten (Anhedonie)" },
+        ] },
+      },
+      {
+        title: "1.5 Zusatzsymptome – Überblick",
+        bullets: [
+          "Schlafstörung – Ein-/Durchschlafen, Früherwachen",
+          "Appetitveränderung – meist vermindert, Gewichtsverlust",
+          "Konzentration – verlangsamtes Denken, Entscheidungsschwäche",
+          "Schuldgefühle – unangemessen, oft mit Wertlosigkeitsgefühl",
+          "Suizidgedanken – aktiv erfragen, immer ernst nehmen",
+        ],
+        layout: "bullets", iconKey: "lightbulb",
+      },
+      {
+        title: "1.5 Zusatzsymptome – im Detail",
+        bullets: ["Schlaf", "Appetit", "Konzentration", "Schuld", "Suizidalität"],
+        layout: "steps", iconKey: "brain",
+        layoutData: { steps: [
+          { title: "Schlafstörung", description: "Typisch: Früherwachen mit Morgentief. Auch Hypersomnie möglich (atypische Depression)." },
+          { title: "Appetitveränderung", description: "Meist Appetitverlust + Gewichtsabnahme. Atypisch: Heißhunger + Zunahme." },
+          { title: "Konzentration & Denken", description: "Subjektive 'Vernebelung', Entscheidungsschwierigkeiten, psychomotorische Verlangsamung." },
+          { title: "Schuld- & Wertlosigkeitsgefühle", description: "Oft unangemessen, ggf. wahnhaft. Differenzieren von realer Schuld." },
+          { title: "Suizidgedanken", description: "Immer aktiv erfragen: Gedanken · Pläne · Vorbereitungen. Notfallplan vereinbaren." },
+        ] },
+      },
+      {
+        title: "Diagnostik-Zusammenfassung",
+        bullets: ["Symptomdauer ≥2 Wochen", "Funktionseinschränkung", "Subjektiver Leidensdruck", "Differentialdiagnose"],
+        layout: "vicious-cycle", iconKey: "shield",
+        layoutData: {
+          centerLabel: "Diagnose Depression",
+          cycleNodes: [
+            { label: "Dauer ≥ 2 Wochen", description: "Symptome fast täglich" },
+            { label: "Funktionseinschränkung", description: "Beruf, Familie, Alltag" },
+            { label: "Leidensdruck", description: "Subjektiv & beobachtbar" },
+            { label: "Differentialdiagnose", description: "Bipolar, Trauer, somatisch, Substanz" },
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 export function getTemplate(id: string) {
