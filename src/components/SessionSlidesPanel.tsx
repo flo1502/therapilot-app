@@ -47,19 +47,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
 
   const defaultSlides = useMemo<ResolvedSlide[]>(() => {
     const out: ResolvedSlide[] = [];
-    // Aus Patienten-Decks: erste Folie passender Decks (per Tag-Match)
-    (patientDecks ?? []).forEach(d => {
-      const matches = step.tags.some(t => d.title.toLowerCase().includes(t.toLowerCase()) || d.topic?.toLowerCase().includes(t.toLowerCase()));
-      if (matches && d.slides[0]) {
-        out.push({
-          key: `d:${d.id}:0`,
-          source: "deck",
-          sourceLabel: `Patient · ${d.title}`,
-          slide: d.slides[0],
-        });
-      }
-    });
-    // Aus Templates
+    // Nur aus Templates der Bibliothek
     step.templateIds.forEach(tid => {
       const t = TEMPLATES.find(x => x.id === tid);
       if (!t) return;
@@ -74,7 +62,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
       });
     });
     return out.slice(0, 3);
-  }, [step, patientDecks]);
+  }, [step]);
 
   const aiResolved = useMemo<ResolvedSlide[]>(() => {
     if (!aiPicks) return [];
