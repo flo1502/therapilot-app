@@ -1142,6 +1142,150 @@ export const TEMPLATES: Template[] = [
       },
     ],
   },
+  {
+    id: "fallkonzept-depression-problemlage",
+    title: "Fallkonzept Depression – 2. Aktuelle Problemlage",
+    approach: "KVT",
+    category: "Psychoedukation",
+    tags: ["Problemanalyse", "Beschwerdebild", "Depression", "Alltag"],
+    description: "Vertiefung zu Punkt 2 des Fallkonzept-Baums: Hauptprobleme, Alltag, Beziehungen, Beruf, Selbstwert und Emotionsregulation – aus Patientensicht strukturiert.",
+    slides: [
+      {
+        title: "2. Aktuelle Problemlage",
+        bullets: ["Hauptprobleme", "Alltag", "Beziehungen", "Beruf", "Selbstwert", "Emotionen"],
+        layout: "headline", iconKey: "compass",
+        layoutData: {
+          headline: "Wo drückt es im Moment am meisten?",
+          subline: "Das Beschwerdebild aus Sicht der Patient:in – konkret und alltagsnah.",
+        },
+      },
+      {
+        title: "Inhalt – die 6 Problembereiche",
+        bullets: [
+          "2.1 Hauptprobleme aus Patientensicht",
+          "2.2 Alltagsbeeinträchtigung",
+          "2.3 Beziehungen & soziales Umfeld",
+          "2.4 Beruf & Leistung",
+          "2.5 Selbstbild & Selbstwert",
+          "2.6 Emotionsregulation",
+        ],
+        layout: "steps", iconKey: "steps",
+        layoutData: { steps: [
+          { title: "2.1 Hauptprobleme", description: "Was belastet aktuell am stärksten – in eigenen Worten?" },
+          { title: "2.2 Alltag", description: "Wie sieht ein typischer Tag aus? Was klappt nicht mehr?" },
+          { title: "2.3 Beziehungen", description: "Familie, Partnerschaft, Freundschaften, Rückzug." },
+          { title: "2.4 Beruf", description: "Leistungsfähigkeit, Krankschreibung, Arbeitsbelastung." },
+          { title: "2.5 Selbstwert", description: "Wie sehe ich mich selbst zurzeit?" },
+          { title: "2.6 Emotionen", description: "Welche Gefühle dominieren? Wie gehe ich mit ihnen um?" },
+        ] },
+      },
+      {
+        title: "2.1 Hauptprobleme aus Patientensicht",
+        bullets: [
+          "Was belastet Sie aktuell am stärksten?",
+          "Seit wann besteht das Problem?",
+          "Was hat sich verändert gegenüber früher?",
+          "Was wäre anders, wenn das Problem gelöst wäre?",
+        ],
+        layout: "question", iconKey: "question",
+        layoutData: {
+          headline: "Was belastet Sie aktuell am stärksten?",
+          subline: "Patient:innen-eigene Worte sind diagnostisch wertvoller als Fachbegriffe.",
+        },
+      },
+      {
+        title: "2.2 Alltagsbeeinträchtigung",
+        bullets: ["Vorher: funktionierender Alltag", "Jetzt: Reduktion auf das Nötigste"],
+        layout: "before-after", iconKey: "scale",
+        layoutData: {
+          before: {
+            title: "Vor der Episode",
+            items: [
+              "Strukturierter Tagesablauf",
+              "Hobbys & Freizeitaktivitäten",
+              "Selbstständige Hausarbeit",
+              "Körperhygiene routiniert",
+            ],
+          },
+          after: {
+            title: "Aktuell",
+            items: [
+              "Tag zerfällt, kein Rhythmus",
+              "Hobbys aufgegeben",
+              "Aufschub einfacher Aufgaben",
+              "Körperpflege wird Anstrengung",
+            ],
+          },
+        },
+      },
+      {
+        title: "2.3 Beziehungen & soziales Umfeld",
+        bullets: ["Familie", "Partnerschaft", "Freundschaften", "Rückzug"],
+        layout: "model", iconKey: "hands",
+        layoutData: { nodes: [
+          { label: "Familie", description: "Konflikte, Schuldgefühle, gefühlte Überforderung der Angehörigen" },
+          { label: "Partnerschaft", description: "Distanz, sexuelles Desinteresse, Reizbarkeit" },
+          { label: "Freunde", description: "Kontakte werden vermieden, Einladungen abgesagt" },
+          { label: "Rückzug", description: "Verstärkt Einsamkeit – aufrechterhaltender Faktor" },
+        ] },
+      },
+      {
+        title: "2.4 Beruf & Leistung",
+        bullets: [
+          "Konzentrations- & Merkschwierigkeiten",
+          "Verlangsamtes Arbeiten, häufige Fehler",
+          "Erhöhte Krankheitstage / Krankschreibung",
+          "Angst vor Arbeitsplatzverlust",
+          "Präsentismus: anwesend, aber nicht leistungsfähig",
+        ],
+        layout: "bullets", iconKey: "target",
+      },
+      {
+        title: "2.5 Selbstbild & Selbstwert",
+        bullets: ["Negativ verzerrte Selbstwahrnehmung"],
+        layout: "model", iconKey: "heart",
+        layoutData: { nodes: [
+          { label: "Selbstbild", description: "'Ich bin schwach / ein Versager'" },
+          { label: "Weltsicht", description: "'Andere schaffen das, ich nicht'" },
+          { label: "Zukunft", description: "'Es wird nie besser'" },
+        ] },
+      },
+      {
+        title: "2.6 Emotionsregulation",
+        bullets: ["Emotionserkennung", "Ausdruck", "Modulation", "Bewältigung"],
+        layout: "steps", iconKey: "breath",
+        layoutData: { steps: [
+          { title: "Erkennen", description: "Gefühle werden diffus wahrgenommen ('alles grau, leer')." },
+          { title: "Ausdrücken", description: "Wenig Sprache für Emotionen, oft Somatisierung." },
+          { title: "Modulieren", description: "Grübeln statt Beruhigung, kaum Selbstregulationsstrategien." },
+          { title: "Bewältigen", description: "Vermeidung, Rückzug, ggf. Substanzkonsum als Notfallregulation." },
+        ] },
+      },
+      {
+        title: "Problemlage – Zusammenfassung",
+        bullets: ["Wo Hebel ansetzen?"],
+        layout: "vicious-cycle", iconKey: "shield",
+        layoutData: {
+          centerLabel: "Aktuelle Belastung",
+          cycleNodes: [
+            { label: "Funktionsverlust", description: "Alltag · Beruf · Hygiene" },
+            { label: "Sozialer Rückzug", description: "Einsamkeit verstärkt Symptome" },
+            { label: "Selbstabwertung", description: "Negative Selbstsicht" },
+            { label: "Emotionsdysregulation", description: "Grübeln statt Bewältigung" },
+          ],
+        },
+      },
+      {
+        title: "Reflexion",
+        bullets: ["Welcher Bereich ist aktuell am stärksten betroffen – und gleichzeitig veränderbar?"],
+        layout: "question", iconKey: "question",
+        layoutData: {
+          headline: "Wo setzen wir zuerst an?",
+          subline: "Den Bereich wählen, der hohen Leidensdruck mit guter Veränderbarkeit verbindet.",
+        },
+      },
+    ],
+  },
 ];
 
 export function getTemplate(id: string) {
