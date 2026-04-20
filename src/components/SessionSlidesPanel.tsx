@@ -89,9 +89,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     const q = searchQ.trim().toLowerCase();
     if (!q) return [];
     const out: ResolvedSlide[] = [];
-    // Suche bewusst über ALLE Templates der Bibliothek (nicht nur Standard-Behandlungs-Templates),
-    // damit auch Themen wie "Emotionsregulation" gefunden werden.
-    TEMPLATES.forEach(t => {
+    standardTemplates.forEach(t => {
       const tplMatch = [t.title, t.description, t.approach, t.category, ...t.tags].join(" ").toLowerCase().includes(q);
       t.slides.forEach((s, idx) => {
         const slideMatch = [s.title, ...s.bullets].join(" ").toLowerCase().includes(q);
@@ -106,7 +104,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
       });
     });
     return out.slice(0, 20);
-  }, [searchQ]);
+  }, [searchQ, standardTemplates]);
 
   const visibleSlides = searchQ.trim()
     ? searchResults
@@ -172,7 +170,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9 pr-8"
-            placeholder="Alle Templates & Folien durchsuchen…"
+            placeholder="Deine Standard-Templates & Folien durchsuchen…"
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
           />
