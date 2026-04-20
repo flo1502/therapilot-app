@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, Slide } from "@/lib/db";
+import { Slide } from "@/lib/db";
 import { TEMPLATES } from "@/lib/templates";
 import { TREATMENT_STEPS, getTreatmentStep } from "@/lib/treatmentSteps";
 import { callAi, SuggestedSlides, SuggestedSlideRef } from "@/lib/ai/provider";
