@@ -2,7 +2,7 @@
 // German psychotherapy curriculum database
 // Based on DGPPN/DGPs guidelines + S3-Leitlinien
 
-import type { Curriculum, ICDCode } from "./types";
+import type { Curriculum, ICDCode } from "./curriculumTypes";
 
 // ═══════════════════════════════════════════════════════════════
 // F41.0 — PANIKSTÖRUNG
