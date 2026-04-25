@@ -1,7 +1,7 @@
 // src/lib/system-prompt.ts
 // German system prompt for LLM specialization on psychotherapy
 
-import type { Curriculum, StageConfig, PatientInfo } from "./types";
+import type { Curriculum, StageConfig, PatientInfo } from "./curriculumTypes";
 
 export const SYSTEM_PROMPT_DE = `
 Du bist ein spezialisierter KI-Assistent für Psychotherapeuten in Deutschland,

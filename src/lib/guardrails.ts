@@ -2,15 +2,15 @@
 // Validation + Personalization for therapeutic AI output
 
 import type {
-  Slide,
-  Template,
+  CurriculumSlide,
+  CurriculumTemplate,
   StageConfig,
   PatientInfo,
   ValidationError,
   ValidationResult,
   GuardrailsConfig,
-} from "./types";
-import { DEFAULT_GUARDRAILS_CONFIG } from "./types";
+} from "./curriculumTypes";
+import { DEFAULT_GUARDRAILS_CONFIG } from "./curriculumTypes";
 
 // ═══════════════════════════════════════════════════════════════
 // READABILITY: Flesch-Index für Deutsch
@@ -117,7 +117,7 @@ export function calculateReadability(text: string): {
 /**
  * Helper: extract all text from a slide.
  */
-function slideText(slide: Slide): string {
+function slideText(slide: CurriculumSlide): string {
   const parts: string[] = [slide.title];
   if (slide.bullets) parts.push(...slide.bullets);
   if (slide.example) parts.push(slide.example);
@@ -127,7 +127,7 @@ function slideText(slide: Slide): string {
 /**
  * Helper: extract all text from a template.
  */
-function templateText(template: Template): string {
+function templateText(template: CurriculumTemplate): string {
   return template.slides.map(slideText).join(" ");
 }
 
@@ -139,7 +139,7 @@ function templateText(template: Template): string {
  * Check 1: Readability
  */
 function checkReadability(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   config: GuardrailsConfig
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -177,7 +177,7 @@ function checkReadability(
  * Check 2: Concrete examples present
  */
 function checkExamples(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   patientInfo: PatientInfo,
   stageConfig: StageConfig
 ): ValidationError[] {
@@ -253,7 +253,7 @@ function extractContentKeywords(required: string): string[] {
  * and parenthetical clarifications. Require ≥50% of keywords present.
  */
 function checkRequiredContent(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   stageConfig: StageConfig
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -293,7 +293,7 @@ function checkRequiredContent(
  * ("keine Gefahr", "nicht gefährlich"), it's actually reassuring — skip it.
  */
 function checkTone(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   stageConfig: StageConfig,
   config: GuardrailsConfig
 ): ValidationError[] {
@@ -355,7 +355,7 @@ function checkTone(
  * Check 5: Patient personalization present
  */
 function checkPersonalization(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   patientInfo: PatientInfo
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -408,10 +408,10 @@ function checkPersonalization(
 }
 
 /**
- * Check 6: Slide count matches stage requirements
+ * Check 6: CurriculumSlide count matches stage requirements
  */
 function checkSlideCount(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   stageConfig: StageConfig
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -432,7 +432,7 @@ function checkSlideCount(
  * Check 7: Jargon without explanation
  */
 function checkJargon(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   config: GuardrailsConfig
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -469,7 +469,7 @@ function checkJargon(
 /**
  * Check 8: Structure quality (titles, bullet count)
  */
-function checkStructure(slides: Slide[]): ValidationError[] {
+function checkStructure(slides: CurriculumSlide[]): ValidationError[] {
   const errors: ValidationError[] = [];
 
   slides.forEach((slide, i) => {
@@ -529,7 +529,7 @@ function checkStructure(slides: Slide[]): ValidationError[] {
  * Run all guardrail checks on AI-generated slides.
  */
 export function validateAIOutput(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   stageConfig: StageConfig,
   patientInfo: PatientInfo,
   config: GuardrailsConfig = DEFAULT_GUARDRAILS_CONFIG
@@ -563,7 +563,7 @@ export function validateAIOutput(
  * Validate an existing template (e.g. before adding to library)
  */
 export function validateTemplate(
-  template: Template,
+  template: CurriculumTemplate,
   stageConfig: StageConfig,
   patientInfo: PatientInfo,
   config: GuardrailsConfig = DEFAULT_GUARDRAILS_CONFIG
@@ -576,11 +576,11 @@ export function validateTemplate(
  * Used in SessionSlidesPanel to filter library before showing to therapist.
  */
 export function filterTemplatesByGuardrails(
-  templates: Template[],
+  templates: CurriculumTemplate[],
   stageConfig: StageConfig,
   patientInfo: PatientInfo,
   config: GuardrailsConfig = DEFAULT_GUARDRAILS_CONFIG
-): Template[] {
+): CurriculumTemplate[] {
   // We do a relaxed check at library-filter time:
   // - Readability must pass
   // - Tone must not be scary (negation-aware)
@@ -632,9 +632,9 @@ export function filterTemplatesByGuardrails(
  * Use as fallback after AI generation, or for static templates.
  */
 export function personalizeSlides(
-  slides: Slide[],
+  slides: CurriculumSlide[],
   patientInfo: PatientInfo
-): Slide[] {
+): CurriculumSlide[] {
   const replacements: Record<string, string> = {
     "[PATIENT_NAME]": patientInfo.name,
     "[BERUF]": patientInfo.beruf || "Beruf",
