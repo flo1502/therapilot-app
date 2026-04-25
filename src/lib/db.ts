@@ -1,4 +1,5 @@
 import Dexie, { Table } from "dexie";
+import type { ICDCode } from "./curriculumTypes";
 
 export type TherapyApproach = "KVT" | "ACT" | "Schematherapie" | "Tiefenpsych." | "Systemisch" | "Andere";
 
@@ -17,6 +18,16 @@ export interface Patient {
   goals: string;             // Therapieziele
   startDate?: string;
   active: boolean;
+
+  // Curriculum-bezogene Felder (optional, additive)
+  curriculumDiagnose?: ICDCode;          // primäre Diagnose für Curriculum-Mapping
+  beruf?: string;
+  triggers?: string[];                   // Auslöse-Situationen
+  hauptsymptome?: string[];
+  hauptangstGedanken?: string[];
+  vermeidungsVerhalten?: string[];
+  ressourcen?: string[];
+  lernstil?: "visuell" | "auditiv" | "kinästhetisch" | "lesen";
 }
 
 export type SessionFormat = "SOAP" | "VT-Verlauf" | "Frei";
@@ -104,6 +115,15 @@ class TheraPilotDB extends Dexie {
     super("therapilot");
     this.version(1).stores({
       patients: "id, updatedAt, active, approach",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v2: additive — neue Patient-Felder (curriculumDiagnose, triggers, ...) sind optional,
+    // brauchen keine Index-Änderung. Wir bumpen die Version trotzdem, damit Dexie ein
+    // sauberes Upgrade durchführt.
+    this.version(2).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",
       settings: "key",

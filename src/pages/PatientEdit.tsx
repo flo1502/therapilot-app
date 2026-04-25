@@ -12,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Save, Trash2 } from "lucide-react";
+import { getAvailableDiagnoses } from "@/lib/curriculum-database";
+import type { ICDCode } from "@/lib/curriculumTypes";
 
 const APPROACHES: TherapyApproach[] = ["KVT", "ACT", "Schematherapie", "Tiefenpsych.", "Systemisch", "Andere"];
+const LERNSTILE = ["visuell", "auditiv", "kinästhetisch", "lesen"] as const;
 
 export default function PatientEdit() {
   const { id } = useParams();
@@ -130,6 +133,74 @@ export default function PatientEdit() {
           <Label>Therapieziele</Label>
           <Textarea rows={3} value={p.goals} onChange={e => setP({ ...p, goals: e.target.value })} />
         </div>
+
+        {/* Curriculum-Felder */}
+        <div className="md:col-span-2 border-t pt-5 mt-1">
+          <h3 className="font-display text-sm mb-3 text-primary">Curriculum & Personalisierung (für AI-Folien)</h3>
+        </div>
+        <div>
+          <Label>Curriculum-Diagnose</Label>
+          <Select
+            value={p.curriculumDiagnose ?? "none"}
+            onValueChange={(v) => setP({ ...p, curriculumDiagnose: v === "none" ? undefined : (v as ICDCode) })}
+          >
+            <SelectTrigger><SelectValue placeholder="Keine" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Keine —</SelectItem>
+              {getAvailableDiagnoses().map(d => (
+                <SelectItem key={d.code} value={d.code}>{d.code} · {d.name} ({d.stadien_count} Stadien)</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">Aktiviert leitliniengerechte Stadien-Folien.</p>
+        </div>
+        <div>
+          <Label>Beruf</Label>
+          <Input value={p.beruf ?? ""} onChange={e => setP({ ...p, beruf: e.target.value })} placeholder="z.B. Lehrer:in" />
+        </div>
+        <div>
+          <Label>Lernstil</Label>
+          <Select value={p.lernstil ?? "none"} onValueChange={(v) => setP({ ...p, lernstil: v === "none" ? undefined : (v as any) })}>
+            <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Keiner —</SelectItem>
+              {LERNSTILE.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="md:col-span-2">
+          <Label>Trigger-Situationen (komma-getrennt)</Label>
+          <Input
+            value={(p.triggers ?? []).join(", ")}
+            onChange={e => setP({ ...p, triggers: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+            placeholder="z.B. Meetings, Präsentationen"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <Label>Hauptsymptome (komma-getrennt)</Label>
+          <Input
+            value={(p.hauptsymptome ?? []).join(", ")}
+            onChange={e => setP({ ...p, hauptsymptome: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+            placeholder="z.B. Herzrasen, Schwitzen, Atemnot"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <Label>Hauptangst-Gedanken (komma-getrennt)</Label>
+          <Input
+            value={(p.hauptangstGedanken ?? []).join(", ")}
+            onChange={e => setP({ ...p, hauptangstGedanken: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+            placeholder="z.B. Ich kriege einen Herzinfarkt"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <Label>Vermeidungsverhalten (komma-getrennt)</Label>
+          <Input
+            value={(p.vermeidungsVerhalten ?? []).join(", ")}
+            onChange={e => setP({ ...p, vermeidungsVerhalten: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+            placeholder="z.B. Meeting verlassen, große Räume meiden"
+          />
+        </div>
+
         <div className="md:col-span-2">
           <Label>Freie Notizen (verschlüsselt)</Label>
           <Textarea rows={5} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Biografie, Hintergrund, individuelle Hinweise…" />
