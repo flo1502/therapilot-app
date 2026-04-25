@@ -219,6 +219,120 @@ function buildRequest(task: string, payload: any, pseudo?: string) {
     };
   }
 
+  if (task === "generate-stage-slides") {
+    // Curriculum-spezifische Slide-Generierung mit deutschem Spezial-Prompt
+    const { curriculum, stageConfig, patientInfo, sessionNotes } = payload ?? {};
+    const numSlides = stageConfig?.num_slides || stageConfig?.folienthemen?.length || 3;
+
+    const personalization = [
+      `- Name: ${patientInfo?.name ?? pseudo ?? "[PATIENT:IN]"}`,
+      patientInfo?.alter && `- Alter: ${patientInfo.alter}`,
+      patientInfo?.beruf && `- Beruf: ${patientInfo.beruf}`,
+      patientInfo?.triggers?.length && `- Trigger-Situationen: ${patientInfo.triggers.join(", ")}`,
+      patientInfo?.hauptsymptome?.length && `- Hauptsymptome: ${patientInfo.hauptsymptome.join(", ")}`,
+      patientInfo?.hauptangst_gedanken?.length && `- Angst-Gedanken: ${patientInfo.hauptangst_gedanken.join(", ")}`,
+      patientInfo?.vermeidungs_verhalten?.length && `- Vermeidung: ${patientInfo.vermeidungs_verhalten.join(", ")}`,
+      patientInfo?.ziele?.length && `- Therapieziele: ${patientInfo.ziele.join(", ")}`,
+      patientInfo?.lernstil && `- Lernstil: ${patientInfo.lernstil}`,
+    ].filter(Boolean).join("\n");
+
+    const stageBlock = `
+AKTUELLER BEHANDLUNGSKONTEXT:
+- Diagnose: ${curriculum?.name} (${curriculum?.diagnose})
+- Leitlinie: ${curriculum?.leitlinie}
+- Evidenzbasis: ${curriculum?.evidence_basis}
+- Aktuelles Stadium: ${stageConfig?.stadium} - ${stageConfig?.name}
+- Geplante Sitzungen: ${stageConfig?.sitzungen}
+
+LERNZIELE FÜR DIESES STADIUM:
+${(stageConfig?.lernziele ?? []).map((z: string, i: number) => `${i + 1}. ${z}`).join("\n")}
+
+ERFORDERLICHE INHALTE (alle müssen vorkommen!):
+${(stageConfig?.erforderliche_inhalte ?? []).map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}
+
+FOLIENTHEMEN:
+${(stageConfig?.folienthemen ?? []).map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}
+
+SPRACHE: ${stageConfig?.sprach_niveau}
+TONE: ${stageConfig?.tone}
+
+PATIENT-PERSONALISIERUNG (alle Folien personalisieren!):
+${personalization}
+
+BEISPIEL-STRUKTUR FÜR DIESES STADIUM:
+${(stageConfig?.beispiel_struktur ?? []).map((b: string) => `- ${b}`).join("\n")}
+
+DIDAKTISCHER HINWEIS:
+${stageConfig?.therapeut_notizen ?? ""}
+${sessionNotes?.trim() ? `\nSITZUNGS-NOTIZEN DES THERAPEUTEN:\n${sessionNotes}` : ""}
+`.trim();
+
+    const fullSystem = `Du bist ein spezialisierter KI-Assistent für Psychotherapeuten in Deutschland.
+SPEZIALISIERUNG: Strukturierte Psychoedukations-Folien nach DGPPN/DGPs-Leitlinien.
+EINSCHRÄNKUNGEN:
+- IMMER das Curriculum für das aktuelle Stadium befolgen
+- NIE Inhalte außerhalb des aktuellen Stadiums
+- NIE Behandlungsempfehlungen direkt an Patient:in
+- IMMER konkrete Fallbeispiele mit Patient-Bezug
+- NIE Fachjargon ohne einfache Erklärung
+- IMMER auf Deutsch (A1-A2, einfache Sprache)
+
+SPRACHE-REGELN:
+- Sätze max. 12 Wörter
+- Stichpunkte max. 15 Wörter
+- Aktive Verben, Du-Form
+- Konkret statt abstrakt
+
+THERAPEUTISCHE PRINZIPIEN:
+- Normalisierung, Hoffnung, Selbstwirksamkeit
+- Sokratische Methode statt Vorträge
+- Lebenswelt-Bezug (Beruf!) in Beispielen
+
+VERBOTENE FORMULIERUNGEN:
+"Sie haben eine Störung" → "Du erlebst Panik"
+"Das ist gefährlich" → "Das fühlt sich unangenehm an"
+"Pathologisch" → "Stärker als normal"
+
+Patient-Pseudonym: '${pseudo ?? "[PATIENT:IN]"}'.
+
+${stageBlock}
+
+OUTPUT: Erstelle EXAKT ${numSlides} Folien. Jede Folie hat: title, bullets (3-4), example, speaker_notes.
+Validiere selbst: Sind alle erforderlichen Inhalte enthalten? Ist personalisiert? Sind Beispiele konkret?`;
+
+    return {
+      messages: [
+        { role: "system", content: fullSystem },
+        { role: "user", content: `Generiere die ${numSlides} Folien jetzt.` },
+      ],
+      tools: [
+        tool("return_stage_slides", "Liefert curriculum-konforme Stadien-Folien.", {
+          type: "object",
+          properties: {
+            slides: {
+              type: "array",
+              minItems: 1,
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string", description: "Folientitel, max. 60 Zeichen." },
+                  bullets: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+                  example: { type: "string", description: "Konkretes Beispiel mit Patient-Bezug." },
+                  speaker_notes: { type: "string", description: "Hinweise für Therapeut:in." },
+                },
+                required: ["title", "bullets", "example"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["slides"],
+          additionalProperties: false,
+        }),
+      ],
+      tool_choice: { type: "function", function: { name: "return_stage_slides" } },
+    };
+  }
+
   if (task === "session-prep") {
     return {
       messages: [
