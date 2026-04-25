@@ -2,15 +2,26 @@ import { useEffect, useMemo, useState } from "react";
 import { Slide } from "@/lib/db";
 import { TEMPLATES } from "@/lib/templates";
 import { TREATMENT_STEPS, getTreatmentStep } from "@/lib/treatmentSteps";
-import { callAi, SuggestedSlides, SuggestedSlideRef } from "@/lib/ai/provider";
+import { callAi, SuggestedSlides, SuggestedSlideRef, GeneratedStageSlides } from "@/lib/ai/provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Presentation, ChevronLeft, ChevronRight, X, FileText, Layers, Search } from "lucide-react";
+import { Sparkles, Presentation, ChevronLeft, ChevronRight, X, FileText, Layers, Search, ShieldCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db";
+import { getCurriculum, getStageConfig } from "@/lib/curriculum-database";
+import {
+  filterTemplatesByGuardrails,
+  validateAIOutput,
+  personalizeSlides,
+  formatValidationReport,
+} from "@/lib/guardrails";
+import type { CurriculumSlide, CurriculumTemplate, PatientInfo, ValidationResult } from "@/lib/curriculumTypes";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   patientId: string;
@@ -21,61 +32,139 @@ interface Props {
 
 interface ResolvedSlide {
   key: string;
-  source: "template" | "deck";
+  source: "template" | "deck" | "ai-stage";
   sourceLabel: string;
   slide: Slide;
   reason?: string;
 }
 
+// Adapter: TEMPLATES (UI) → CurriculumTemplate (für Guardrail-Filter)
+function toCurriculumTemplate(t: typeof TEMPLATES[number]): CurriculumTemplate {
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    approach: t.approach,
+    category: t.category,
+    tags: t.tags,
+    slides: t.slides.map((s) => ({
+      title: s.title,
+      bullets: s.bullets,
+      speaker_notes: s.notes,
+    })),
+  };
+}
+
+// AI-generierte CurriculumSlides → ResolvedSlide für UI
+function curriculumSlideToResolved(s: CurriculumSlide, idx: number): ResolvedSlide {
+  const bullets = [...s.bullets];
+  if (s.example) bullets.push(`Beispiel: ${s.example}`);
+  return {
+    key: `ai-stage:${idx}`,
+    source: "ai-stage",
+    sourceLabel: "AI · Curriculum-Folie",
+    slide: {
+      id: `ai-stage-${idx}`,
+      title: s.title,
+      bullets,
+      notes: s.speaker_notes,
+    },
+  };
+}
+
 export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }: Props) {
+  const patient = useLiveQuery(() => patientId ? db.patients.get(patientId) : Promise.resolve(undefined), [patientId]);
+
+  const curriculum = useMemo(
+    () => patient?.curriculumDiagnose ? getCurriculum(patient.curriculumDiagnose) : undefined,
+    [patient?.curriculumDiagnose]
+  );
+
+  // Stadium-State: bei Curriculum → Stadium-Nummer; sonst → alter TREATMENT_STEPS-Modus
+  const [stadiumNum, setStadiumNum] = useState<number>(1);
   const [stepId, setStepId] = useState<string>(TREATMENT_STEPS[0].id);
+
+  const stageConfig = useMemo(
+    () => curriculum ? getStageConfig(curriculum.diagnose, stadiumNum) : undefined,
+    [curriculum, stadiumNum]
+  );
+
+  const fallbackStep = useMemo(() => getTreatmentStep(stepId)!, [stepId]);
+
   const [aiBusy, setAiBusy] = useState(false);
   const [aiPicks, setAiPicks] = useState<SuggestedSlideRef[] | null>(null);
+  const [aiStageSlides, setAiStageSlides] = useState<CurriculumSlide[] | null>(null);
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [presentIndex, setPresentIndex] = useState<number | null>(null);
   const [searchQ, setSearchQ] = useState("");
 
-  const step = getTreatmentStep(stepId)!;
+  // Patient-Info für Guardrails/AI
+  const patientInfo: PatientInfo = useMemo(() => ({
+    name: patient?.id ?? patientId,
+    alter: patient?.ageGroup ? parseInt(patient.ageGroup) || undefined : undefined,
+    beruf: patient?.beruf,
+    triggers: patient?.triggers,
+    hauptsymptome: patient?.hauptsymptome,
+    hauptangst_gedanken: patient?.hauptangstGedanken,
+    vermeidungs_verhalten: patient?.vermeidungsVerhalten,
+    ressourcen: patient?.ressourcen,
+    ziele: patient?.goals ? [patient.goals] : undefined,
+    lernstil: patient?.lernstil,
+  }), [patient, patientId]);
+
   const libraryTemplates = useMemo(
     () => TEMPLATES.filter((template) => !template.id.startsWith("behandlung-")),
     []
   );
-  const stepTemplates = useMemo(
-    () => {
-      const keywords = [step.label, step.description, approach, ...step.tags]
-        .filter(Boolean)
-        .flatMap((value) => String(value).toLowerCase().split(/[^\p{L}\p{N}]+/u))
-        .filter((value) => value.length >= 4);
 
-      return libraryTemplates
-        .map((template) => {
-          const haystack = [
-            template.title,
-            template.description,
-            template.approach,
-            template.category,
-            ...template.tags,
-            ...template.slides.flatMap((slide) => [slide.title, ...slide.bullets]),
-          ].join(" ").toLowerCase();
+  // Mit Guardrails gefilterte Templates (nur wenn Curriculum aktiv)
+  const filteredTemplates = useMemo(() => {
+    if (!stageConfig) return libraryTemplates;
+    const curriculumTemplates = libraryTemplates.map(toCurriculumTemplate);
+    const passed = filterTemplatesByGuardrails(curriculumTemplates, stageConfig, patientInfo);
+    const passedIds = new Set(passed.map((t) => t.id));
+    return libraryTemplates.filter((t) => passedIds.has(t.id));
+  }, [libraryTemplates, stageConfig, patientInfo]);
 
-          const score = keywords.reduce((sum, keyword) => {
-            if (!haystack.includes(keyword)) return sum;
-            const strongMatch =
-              template.title.toLowerCase().includes(keyword) ||
-              template.tags.some((tag) => tag.toLowerCase().includes(keyword));
-            return sum + (strongMatch ? 3 : 1);
-          }, 0) + (approach && template.approach.toLowerCase() === approach.toLowerCase() ? 4 : 0);
+  // Schritt-spezifische Templates: nach Stadium-Themen oder TREATMENT_STEPS
+  const stepTemplates = useMemo(() => {
+    const keywords = (
+      stageConfig
+        ? [stageConfig.name, ...stageConfig.folienthemen, ...(stageConfig.lernziele ?? [])]
+        : [fallbackStep.label, fallbackStep.description, approach, ...fallbackStep.tags]
+    )
+      .filter(Boolean)
+      .flatMap((value) => String(value).toLowerCase().split(/[^\p{L}\p{N}]+/u))
+      .filter((value) => value.length >= 4);
 
-          return { template, score };
-        })
-        .filter(({ score }) => score > 0)
-        .sort((a, b) => b.score - a.score || b.template.slides.length - a.template.slides.length)
-        .map(({ template }) => template);
-    },
-    [approach, libraryTemplates, step.description, step.label, step.tags]
-  );
+    return filteredTemplates
+      .map((template) => {
+        const haystack = [
+          template.title,
+          template.description,
+          template.approach,
+          template.category,
+          ...template.tags,
+          ...template.slides.flatMap((slide) => [slide.title, ...slide.bullets]),
+        ].join(" ").toLowerCase();
 
-  // Reset AI suggestions when step changes
-  useEffect(() => { setAiPicks(null); }, [stepId]);
+        const score = keywords.reduce((sum, keyword) => {
+          if (!haystack.includes(keyword)) return sum;
+          const strongMatch =
+            template.title.toLowerCase().includes(keyword) ||
+            template.tags.some((tag) => tag.toLowerCase().includes(keyword));
+          return sum + (strongMatch ? 3 : 1);
+        }, 0) + (approach && template.approach.toLowerCase() === approach.toLowerCase() ? 4 : 0);
+
+        return { template, score };
+      })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score || b.template.slides.length - a.template.slides.length)
+      .map(({ template }) => template);
+  }, [approach, filteredTemplates, fallbackStep, stageConfig]);
+
+  // Reset AI bei Stadium-Wechsel
+  useEffect(() => { setAiPicks(null); setAiStageSlides(null); setValidation(null); }, [stadiumNum, stepId, patientId]);
 
   const defaultSlides = useMemo<ResolvedSlide[]>(() => {
     const out: ResolvedSlide[] = [];
@@ -97,7 +186,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
     const out: ResolvedSlide[] = [];
     aiPicks.forEach((p, i) => {
       if (p.source !== "template") return;
-      const t = TEMPLATES.find(x => x.id === p.sourceId);
+      const t = TEMPLATES.find((x) => x.id === p.sourceId);
       const s = t?.slides[p.slideIndex];
       if (t && s) out.push({
         key: `ai-t:${i}`,
@@ -108,13 +197,18 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
       });
     });
     return out;
-  }, [aiPicks, step.templateIds]);
+  }, [aiPicks]);
+
+  const aiStageResolved = useMemo<ResolvedSlide[]>(() => {
+    if (!aiStageSlides) return [];
+    return aiStageSlides.map(curriculumSlideToResolved);
+  }, [aiStageSlides]);
 
   const searchResults = useMemo<ResolvedSlide[]>(() => {
     const q = searchQ.trim().toLowerCase();
     if (!q) return [];
     const ranked: Array<{ slide: ResolvedSlide; score: number }> = [];
-    libraryTemplates.forEach(t => {
+    libraryTemplates.forEach((t) => {
       const tplMatch = [t.title, t.description, t.approach, t.category, ...t.tags].join(" ").toLowerCase().includes(q);
       t.slides.forEach((s, idx) => {
         const slideTitle = s.title.toLowerCase();
@@ -141,42 +235,83 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
         }
       });
     });
-    return ranked
-      .sort((a, b) => b.score - a.score)
-      .map(({ slide }) => slide)
-      .slice(0, 20);
+    return ranked.sort((a, b) => b.score - a.score).map(({ slide }) => slide).slice(0, 20);
   }, [libraryTemplates, searchQ]);
 
   const visibleSlides = searchQ.trim()
     ? searchResults
-    : aiResolved.length > 0 ? aiResolved : defaultSlides;
+    : aiStageResolved.length > 0
+      ? aiStageResolved
+      : aiResolved.length > 0
+        ? aiResolved
+        : defaultSlides;
 
   const askAi = async () => {
     setAiBusy(true);
     try {
-      // Kandidaten zusammenstellen (kompakt, ohne sensible Daten)
-      const candidates: any[] = [];
-      libraryTemplates.forEach(t => {
-        t.slides.forEach((s, idx) => {
-          candidates.push({ source: "template", sourceId: t.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
-        });
-      });
+      // Curriculum-Modus: generate-stage-slides
+      if (curriculum && stageConfig) {
+        let attempts = 0;
+        let result: GeneratedStageSlides | null = null;
+        let lastValidation: ValidationResult | null = null;
 
-      const res = await callAi<SuggestedSlides>({
-        task: "suggest-slides",
-        patientPseudonym: patientId,
-        payload: {
-          stepLabel: step.label,
-          stepDescription: step.description,
-          approach,
-          goals,
-          notesExcerpt,
-          candidates,
-        },
-      });
-      if (!res.suggestions?.length) throw new Error("Keine Vorschläge erhalten.");
-      setAiPicks(res.suggestions.slice(0, 3));
-      toast.success("AI-Vorschläge bereit.");
+        while (attempts < 2) {
+          attempts++;
+          result = await callAi<GeneratedStageSlides>({
+            task: "generate-stage-slides",
+            patientPseudonym: patientId,
+            payload: {
+              curriculum,
+              stageConfig,
+              patientInfo,
+              sessionNotes: notesExcerpt,
+              previousErrors: lastValidation?.errors.map((e) => e.message),
+            },
+          });
+
+          if (!result?.slides?.length) throw new Error("Keine Folien erhalten.");
+
+          // Personalisierungs-Fallback
+          const personalized = personalizeSlides(result.slides, patientInfo);
+          // Validieren
+          lastValidation = validateAIOutput(personalized, stageConfig, patientInfo);
+
+          if (lastValidation.valid || attempts >= 2) {
+            setAiStageSlides(personalized);
+            setValidation(lastValidation);
+            if (lastValidation.valid) {
+              toast.success(`Curriculum-Folien generiert (Score: ${lastValidation.score}/100)`);
+            } else {
+              toast.warning(`Folien generiert mit ${lastValidation.errors.length} Hinweisen (Score: ${lastValidation.score}/100)`);
+            }
+            return;
+          }
+        }
+      } else {
+        // Klassischer Modus: suggest-slides aus Library
+        const candidates: any[] = [];
+        libraryTemplates.forEach((t) => {
+          t.slides.forEach((s, idx) => {
+            candidates.push({ source: "template", sourceId: t.id, slideIndex: idx, title: s.title, bullets: s.bullets.slice(0, 3) });
+          });
+        });
+
+        const res = await callAi<SuggestedSlides>({
+          task: "suggest-slides",
+          patientPseudonym: patientId,
+          payload: {
+            stepLabel: fallbackStep.label,
+            stepDescription: fallbackStep.description,
+            approach,
+            goals,
+            notesExcerpt,
+            candidates,
+          },
+        });
+        if (!res.suggestions?.length) throw new Error("Keine Vorschläge erhalten.");
+        setAiPicks(res.suggestions.slice(0, 3));
+        toast.success("AI-Vorschläge bereit.");
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "AI-Fehler");
     } finally {
@@ -186,26 +321,58 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
 
   const present = visibleSlides[presentIndex ?? 0];
 
+  const scoreColor = validation
+    ? validation.score >= 80 ? "bg-primary text-primary-foreground"
+      : validation.score >= 50 ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+      : "bg-destructive/20 text-destructive"
+    : "";
+
   return (
     <>
       <Card><CardContent className="p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Layers className="size-4 text-primary" />
-          <h3 className="font-display text-base">Folien zum Behandlungsschritt</h3>
+          <h3 className="font-display text-base">
+            {curriculum ? `Curriculum: ${curriculum.diagnose}` : "Folien zum Behandlungsschritt"}
+          </h3>
         </div>
 
-        <div>
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Aktueller Schritt</Label>
-          <Select value={stepId} onValueChange={setStepId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {TREATMENT_STEPS.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1.5">{step.description}</p>
-        </div>
+        {curriculum && stageConfig ? (
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+              Stadium ({curriculum.stadien.length} verfügbar)
+            </Label>
+            <Select value={String(stadiumNum)} onValueChange={(v) => setStadiumNum(parseInt(v, 10))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {curriculum.stadien.map((s) => (
+                  <SelectItem key={s.stadium} value={String(s.stadium)}>
+                    Stadium {s.stadium} · {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Sitzungen {stageConfig.sitzungen} · {stageConfig.tone}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Aktueller Schritt</Label>
+            <Select value={stepId} onValueChange={setStepId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TREATMENT_STEPS.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1.5">{fallbackStep.description}</p>
+            {!patient?.curriculumDiagnose && patientId && (
+              <p className="text-[11px] text-muted-foreground mt-1 italic">
+                Tipp: Setze eine Curriculum-Diagnose im Patient-Profil für leitliniengerechte Folien.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="relative">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -213,7 +380,7 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
             className="pl-9 pr-8"
             placeholder="Alle Templates & Folien durchsuchen…"
             value={searchQ}
-            onChange={e => setSearchQ(e.target.value)}
+            onChange={(e) => setSearchQ(e.target.value)}
           />
           {searchQ && (
             <button
@@ -228,8 +395,31 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
 
         <Button onClick={askAi} disabled={aiBusy || !patientId || !!searchQ.trim()} variant="outline" size="sm" className="w-full">
           <Sparkles className="size-4 mr-2" />
-          {aiBusy ? "AI sucht passende Folien…" : "AI-Vorschlag (basierend auf Notiz)"}
+          {aiBusy
+            ? "AI generiert…"
+            : curriculum
+              ? `AI: Stadium-${stadiumNum}-Folien generieren`
+              : "AI-Vorschlag (basierend auf Notiz)"}
         </Button>
+
+        {validation && aiStageSlides && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs cursor-help ${scoreColor}`}>
+                  {validation.valid ? <ShieldCheck className="size-4" /> : <AlertTriangle className="size-4" />}
+                  <span className="font-medium">Quality Score: {validation.score}/100</span>
+                  <span className="ml-auto opacity-70">
+                    {validation.errors.length} Fehler · {validation.warnings.length} Warnungen
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-md whitespace-pre-wrap text-xs">
+                {formatValidationReport(validation)}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         {visibleSlides.length === 0 ? (
           <div className="text-sm text-muted-foreground italic py-4 text-center">
@@ -246,15 +436,13 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="font-display text-sm text-foreground">{rs.slide.title}</span>
                   <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {rs.source === "deck" ? "Patient" : "Template"}
+                    {rs.source === "deck" ? "Patient" : rs.source === "ai-stage" ? "AI" : "Template"}
                   </Badge>
                 </div>
                 <ul className="text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
                   {rs.slide.bullets.slice(0, 3).map((b, j) => <li key={j} className="line-clamp-1">{b}</li>)}
                 </ul>
-                {rs.reason && (
-                  <p className="text-[11px] text-primary/80 mt-1.5 italic">→ {rs.reason}</p>
-                )}
+                {rs.reason && <p className="text-[11px] text-primary/80 mt-1.5 italic">→ {rs.reason}</p>}
                 <div className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
                   <FileText className="size-3" />{rs.sourceLabel}
                 </div>
@@ -295,16 +483,16 @@ export function SessionSlidesPanel({ patientId, approach, goals, notesExcerpt }:
           <div className="flex justify-between items-center p-4 border-t">
             <Button
               variant="outline"
-              onClick={() => setPresentIndex(p => Math.max((p ?? 0) - 1, 0))}
+              onClick={() => setPresentIndex((p) => Math.max((p ?? 0) - 1, 0))}
               disabled={presentIndex === 0}
             >
               <ChevronLeft className="size-4 mr-1" />Zurück
             </Button>
             <div className="text-xs text-muted-foreground hidden md:block">
-              {step.label}
+              {curriculum && stageConfig ? `${curriculum.diagnose} · Stadium ${stadiumNum}` : fallbackStep.label}
             </div>
             <Button
-              onClick={() => setPresentIndex(p => Math.min((p ?? 0) + 1, visibleSlides.length - 1))}
+              onClick={() => setPresentIndex((p) => Math.min((p ?? 0) + 1, visibleSlides.length - 1))}
               disabled={presentIndex === visibleSlides.length - 1}
             >
               Weiter<ChevronRight className="size-4 ml-1" />
