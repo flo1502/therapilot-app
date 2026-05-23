@@ -13,6 +13,8 @@ import { Save, Sparkles, Mic, MicOff } from "lucide-react";
 import { callAi, StructuredSession } from "@/lib/ai/provider";
 import { useLiveQuery } from "dexie-react-hooks";
 import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
+import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FORMATS: SessionFormat[] = ["SOAP", "VT-Verlauf", "Frei"];
 
