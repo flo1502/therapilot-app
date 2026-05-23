@@ -139,6 +139,14 @@ class TheraPilotDB extends Dexie {
       decks: "id, patientId, updatedAt",
       settings: "key",
     });
+    // v3: additive – neue Session-Felder (transcript, kvDocumentation, kvExtraction,
+    // kvValidation) sind optional und brauchen keinen neuen Index.
+    this.version(3).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
   }
 }
 
