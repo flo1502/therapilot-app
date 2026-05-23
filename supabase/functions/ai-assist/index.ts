@@ -364,6 +364,201 @@ Validiere selbst: Sind alle erforderlichen Inhalte enthalten? Ist personalisiert
   throw new Error("Unbekannte Task: " + task);
 }
 
+// ============== KV-Verlaufsdokumentation (2-Pass: Extract -> Compose) ==============
+
+const KV_EXTRACT_TOOL = {
+  type: "function",
+  function: {
+    name: "return_kv_extraction",
+    description: "Extrahiert strukturierte Fakten aus dem Sitzungs-Transkript.",
+    parameters: {
+      type: "object",
+      properties: {
+        symptome: { type: "array", items: { type: "string" } },
+        themen: { type: "array", items: { type: "string" } },
+        interventionen: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              kind: {
+                type: "string",
+                enum: [
+                  "Psychoedukation","KVT","Exposition","Kognitive Umstrukturierung",
+                  "Verhaltensanalyse","Skills-Training","Achtsamkeit","Validierung",
+                  "Sokratischer Dialog","Ressourcenaktivierung","Imagination",
+                  "Hausaufgaben-Besprechung","Krisenintervention","Sonstiges",
+                ],
+              },
+              beschreibung: { type: "string" },
+            },
+            required: ["kind", "beschreibung"],
+            additionalProperties: false,
+          },
+        },
+        vereinbarungen: { type: "array", items: { type: "string" } },
+        risiken: {
+          type: "object",
+          properties: {
+            suizidalitaet: { type: "string" },
+            fremdgefahrdung: { type: "string" },
+            selbstverletzung: { type: "string" },
+            substanzkonsum: { type: "string" },
+            sonstige: { type: "string" },
+          },
+          required: ["suizidalitaet"],
+          additionalProperties: false,
+        },
+        verlauf_indikatoren: { type: "array", items: { type: "string" } },
+        abrechnung: {
+          type: "object",
+          properties: {
+            sitzungsformat: { type: "string" },
+            dauerMin: { type: "number" },
+            besonderheiten: { type: "string" },
+            ziffer_hinweise: { type: "array", items: { type: "string" } },
+          },
+          additionalProperties: false,
+        },
+      },
+      required: ["symptome", "themen", "interventionen", "vereinbarungen", "risiken", "verlauf_indikatoren", "abrechnung"],
+      additionalProperties: false,
+    },
+  },
+};
+
+const KV_COMPOSE_TOOL = {
+  type: "function",
+  function: {
+    name: "return_kv_documentation",
+    description: "Liefert die finale 7-Sektionen Verlaufsdokumentation.",
+    parameters: {
+      type: "object",
+      properties: {
+        aktuelle_symptomatik: { type: "string" },
+        inhalte_der_sitzung: { type: "string" },
+        therapeutische_interventionen: { type: "string" },
+        verlauf_und_einschaetzung: { type: "string" },
+        vereinbarungen: { type: "string" },
+        risikoabklaerung: { type: "string" },
+        administrative_hinweise: { type: "string" },
+      },
+      required: [
+        "aktuelle_symptomatik","inhalte_der_sitzung","therapeutische_interventionen",
+        "verlauf_und_einschaetzung","vereinbarungen","risikoabklaerung","administrative_hinweise",
+      ],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function callGateway(apiKey: string, model: string, body: any): Promise<any> {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, ...body }),
+  });
+  if (resp.status === 429) throw new Error("RATE_LIMIT");
+  if (resp.status === 402) throw new Error("PAYMENT_REQUIRED");
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error("AI-Gateway Fehler:", resp.status, t);
+    throw new Error("AI-Gateway Fehler");
+  }
+  const data = await resp.json();
+  const call = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!call?.function?.arguments) throw new Error("Keine strukturierte Antwort.");
+  return JSON.parse(call.function.arguments);
+}
+
+async function runKVDocumentation(apiKey: string, payload: any, pseudo?: string) {
+  const transcript: string = payload?.transcript ?? "";
+  const context = payload?.context ?? {};
+  const previousErrors: string[] = payload?.previousErrors ?? [];
+
+  if (!transcript.trim()) throw new Error("Transkript fehlt");
+
+  const baseSystem =
+    "Du bist ein klinischer Dokumentations-Assistent für approbierte Psychotherapeut:innen in Deutschland. " +
+    "Du arbeitest ausschließlich mit pseudonymisierten Daten. Patient:in wird mit dem Pseudonym " +
+    `'${pseudo ?? "[PATIENT:IN]"}' bezeichnet. ` +
+    "Du stellst KEINE Diagnosen und gibst KEINE Behandlungsanweisungen.";
+
+  // PASS 1 – EXTRACT
+  const extractSystem = `${baseSystem}
+
+AUFGABE: Extrahiere strukturierte Fakten aus dem Transkript einer psychotherapeutischen Sitzung.
+
+REGELN:
+- Nur explizit Genanntes oder klar Beobachtbares extrahieren – keine Vermutungen.
+- Interventionen klassifizieren nach Whitelist (siehe Tool-Schema).
+- Risiken: Suizidalität ist Pflichtfeld. Wenn nicht thematisiert: "nicht exploriert" oder "kein Hinweis im Transkript".
+- Abrechnungs-Hinweise: nur Format/Dauer/Besonderheiten erkennen, KEINE konkreten EBM-Ziffern erfinden.
+- Vereinbarungen umfassen Hausaufgaben, nächste Sitzung, Absprachen.
+- Knapp und neutral formulieren.`;
+
+  const extract = await callGateway(apiKey, "google/gemini-2.5-pro", {
+    messages: [
+      { role: "system", content: extractSystem },
+      {
+        role: "user",
+        content:
+          `Kontext:\n- Diagnose(n): ${(context.diagnoses ?? []).join(", ") || "—"}\n` +
+          `- Therapieansatz: ${context.approach ?? "—"}\n` +
+          `- Therapieziele: ${context.goals ?? "—"}\n` +
+          `- Sitzungsdauer (Min): ${context.durationMin ?? "—"}\n\n` +
+          `Transkript:\n${transcript}`,
+      },
+    ],
+    tools: [KV_EXTRACT_TOOL],
+    tool_choice: { type: "function", function: { name: "return_kv_extraction" } },
+  });
+
+  // PASS 2 – COMPOSE
+  const composeSystem = `${baseSystem}
+
+AUFGABE: Erstelle eine KV-konforme psychotherapeutische Verlaufsdokumentation in EXAKT 7 Abschnitten:
+1. Aktuelle Symptomatik
+2. Inhalte der Sitzung
+3. Therapeutische Interventionen
+4. Verlauf und Einschätzung
+5. Vereinbarungen
+6. Risikoabklärung
+7. Administrative / Abrechnungsrelevante Hinweise
+
+STIL-REGELN (kritisch!):
+- Klinisch-neutral, knapp, indirekte Wiedergabe.
+- KEINE direkte Rede ("..."), KEINE wörtlichen Zitate.
+- KEINE wertenden Aussagen ("leider", "beeindruckend", "tapfer" etc.).
+- KEINE spekulativen Diagnosen ("vermutlich depressiv", "wirkt traumatisiert").
+- Therapeutische Fachsprache korrekt, aber sparsam – keine Bullet-Wüsten.
+- Nur Inhalte, die explizit genannt oder beobachtbar sind.
+- Risikoabklärung MUSS eine explizite Aussage zu Suizidalität enthalten (auch "nicht exploriert").
+- Patient:in immer mit Pseudonym '${pseudo ?? "[PATIENT:IN]"}' oder neutral ("die Patientin", "der Patient", "Pat.").
+- Abrechnungsrelevante Hinweise priorisieren (Format, Dauer, Setting, Besonderheiten).
+${previousErrors.length ? `\nVORHERIGER VERSUCH HATTE FEHLER – BITTE BEHEBEN:\n${previousErrors.map((e) => `- ${e}`).join("\n")}` : ""}`;
+
+  const documentation = await callGateway(apiKey, "openai/gpt-5", {
+    messages: [
+      { role: "system", content: composeSystem },
+      {
+        role: "user",
+        content:
+          `Extrahierte Fakten (Pass 1):\n${JSON.stringify(extract, null, 2)}\n\n` +
+          `Kontext:\n- Diagnose(n): ${(context.diagnoses ?? []).join(", ") || "—"}\n` +
+          `- Therapieansatz: ${context.approach ?? "—"}\n` +
+          `- Therapieziele: ${context.goals ?? "—"}\n` +
+          `- Sitzungsdauer (Min): ${context.durationMin ?? "—"}\n\n` +
+          `Verfasse jetzt die 7-Sektionen-Dokumentation.`,
+      },
+    ],
+    tools: [KV_COMPOSE_TOOL],
+    tool_choice: { type: "function", function: { name: "return_kv_documentation" } },
+  });
+
+  return { extraction: extract, documentation };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -373,6 +568,28 @@ Deno.serve(async (req: Request) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY fehlt");
+
+    // Spezial-Pfad: KV-Verlaufsdokumentation (zwei sequentielle LLM-Calls)
+    if (task === "kv-documentation") {
+      try {
+        const result = await runKVDocumentation(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        if (msg === "RATE_LIMIT") {
+          return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (msg === "PAYMENT_REQUIRED") {
+          return new Response(JSON.stringify({ error: "AI-Guthaben aufgebraucht. Bitte in Lovable Workspace aufladen." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({ error: msg }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
     const model = (task === "personalize-slides" || task === "generate-stage-slides") ? MODEL_SLIDES : MODEL;
