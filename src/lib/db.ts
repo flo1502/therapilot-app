@@ -43,6 +43,17 @@ export interface SessionEntry {
   homework?: string;
   nextFocus?: string;
   createdAt: number;
+
+  // KV-Verlaufsdokumentation (additive, optional)
+  transcript?: string;
+  kvDocumentation?: import("./kvDocTypes").KVDocumentation;
+  kvExtraction?: import("./kvDocTypes").KVExtraction;
+  kvValidation?: {
+    score: number;
+    errors: string[];
+    warnings: string[];
+    generatedAt: number;
+  };
 }
 
 export interface SlideDeck {
@@ -123,6 +134,14 @@ class TheraPilotDB extends Dexie {
     // brauchen keine Index-Änderung. Wir bumpen die Version trotzdem, damit Dexie ein
     // sauberes Upgrade durchführt.
     this.version(2).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v3: additive – neue Session-Felder (transcript, kvDocumentation, kvExtraction,
+    // kvValidation) sind optional und brauchen keinen neuen Index.
+    this.version(3).stores({
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",
