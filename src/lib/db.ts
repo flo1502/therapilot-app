@@ -43,6 +43,17 @@ export interface SessionEntry {
   homework?: string;
   nextFocus?: string;
   createdAt: number;
+
+  // KV-Verlaufsdokumentation (additive, optional)
+  transcript?: string;
+  kvDocumentation?: import("./kvDocTypes").KVDocumentation;
+  kvExtraction?: import("./kvDocTypes").KVExtraction;
+  kvValidation?: {
+    score: number;
+    errors: string[];
+    warnings: string[];
+    generatedAt: number;
+  };
 }
 
 export interface SlideDeck {
