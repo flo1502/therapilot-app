@@ -151,44 +151,75 @@ export default function SessionEdit() {
         </div>
       </CardContent></Card>
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-1"><CardContent className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <Label className="text-sm font-medium">Roh-Notiz</Label>
-            <Button type="button" size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
-              {recording ? <><MicOff className="size-4 mr-1.5" />Stop</> : <><Mic className="size-4 mr-1.5" />Diktat</>}
-            </Button>
+      <Tabs defaultValue="soap" className="w-full">
+        <TabsList>
+          <TabsTrigger value="soap">SOAP / Strukturierung</TabsTrigger>
+          <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
+          <TabsTrigger value="slides">Folien</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="soap" className="mt-4">
+          <div className="grid lg:grid-cols-2 gap-4">
+            <Card><CardContent className="p-5">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Roh-Notiz</Label>
+                <Button type="button" size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
+                  {recording ? <><MicOff className="size-4 mr-1.5" />Stop</> : <><Mic className="size-4 mr-1.5" />Diktat</>}
+                </Button>
+              </div>
+              <Textarea rows={18} value={s.rawNotes} onChange={e => setS({ ...s, rawNotes: e.target.value })}
+                placeholder="Stichpunkte, Themen, Beobachtungen während der Sitzung…" />
+              <Button className="mt-3 w-full" onClick={structure} disabled={busy}>
+                <Sparkles className="size-4 mr-2" />
+                {busy ? "Strukturiere…" : `Mit AI als ${s.format} strukturieren`}
+              </Button>
+            </CardContent></Card>
+
+            <Card><CardContent className="p-5">
+              <Label className="text-sm font-medium">Strukturierte Dokumentation</Label>
+              {s.structured ? (
+                <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                  {s.structured}
+                </div>
+              ) : (
+                <div className="mt-2 text-sm text-muted-foreground italic">
+                  Noch keine Strukturierung. Klicken Sie links auf „Mit AI strukturieren".
+                </div>
+              )}
+            </CardContent></Card>
           </div>
-          <Textarea rows={18} value={s.rawNotes} onChange={e => setS({ ...s, rawNotes: e.target.value })}
-            placeholder="Stichpunkte, Themen, Beobachtungen während der Sitzung…" />
-          <Button className="mt-3 w-full" onClick={structure} disabled={busy}>
-            <Sparkles className="size-4 mr-2" />
-            {busy ? "Strukturiere…" : `Mit AI als ${s.format} strukturieren`}
-          </Button>
-        </CardContent></Card>
+        </TabsContent>
 
-        <Card className="lg:col-span-1"><CardContent className="p-5">
-          <Label className="text-sm font-medium">Strukturierte Dokumentation</Label>
-          {s.structured ? (
-            <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-              {s.structured}
-            </div>
-          ) : (
-            <div className="mt-2 text-sm text-muted-foreground italic">
-              Noch keine Strukturierung. Klicken Sie links auf „Mit AI strukturieren".
-            </div>
-          )}
-        </CardContent></Card>
+        <TabsContent value="kv" className="mt-4">
+          <KVDocumentationPanel
+            patientId={s.patientId}
+            patientPseudonym={s.patientId}
+            diagnoses={allPatients?.find(p => p.id === s.patientId)?.diagnoses}
+            approach={allPatients?.find(p => p.id === s.patientId)?.approach}
+            goals={allPatients?.find(p => p.id === s.patientId)?.goals}
+            durationMin={s.durationMin}
+            transcript={s.transcript ?? ""}
+            onTranscriptChange={(v) => setS({ ...s, transcript: v })}
+            documentation={s.kvDocumentation}
+            extraction={s.kvExtraction}
+            validation={s.kvValidation}
+            onDocumentationChange={(doc, ext, val) => {
+              const updated = { ...s, kvDocumentation: doc, kvExtraction: ext, kvValidation: val };
+              setS(updated);
+              db.sessions.put(updated);
+            }}
+          />
+        </TabsContent>
 
-        <div className="lg:col-span-1">
+        <TabsContent value="slides" className="mt-4">
           <SessionSlidesPanel
             patientId={s.patientId}
             approach={allPatients?.find(p => p.id === s.patientId)?.approach}
             goals={allPatients?.find(p => p.id === s.patientId)?.goals}
             notesExcerpt={s.rawNotes}
           />
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
