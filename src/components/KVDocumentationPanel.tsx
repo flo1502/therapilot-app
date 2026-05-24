@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sparkles, Upload, Copy, FileText, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Sparkles, Upload, Copy, FileText, AlertTriangle, CheckCircle2, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { callAi } from "@/lib/ai/provider";
 import {
@@ -64,6 +64,37 @@ export function KVDocumentationPanel({
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<"idle" | "extract" | "compose" | "validate" | "retry">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [recording, setRecording] = useState(false);
+  const recRef = useRef<any>(null);
+
+  const toggleRec = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { toast.error("Diktat in diesem Browser nicht verfügbar."); return; }
+    if (recording) {
+      recRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "de-DE";
+    rec.interimResults = true;
+    rec.continuous = true;
+    let finalText = transcript;
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t + " ";
+        else interim += t;
+      }
+      onTranscriptChange(finalText + interim);
+    };
+    rec.onerror = () => setRecording(false);
+    rec.onend = () => setRecording(false);
+    rec.start();
+    recRef.current = rec;
+    setRecording(true);
+  };
 
   const handleFile = async (file: File) => {
     const text = await file.text();
@@ -179,6 +210,9 @@ export function KVDocumentationPanel({
               />
               <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="size-4 mr-1.5" /> Datei
+              </Button>
+              <Button size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
+                {recording ? <><MicOff className="size-4 mr-1.5" />Stop</> : <><Mic className="size-4 mr-1.5" />Diktat</>}
               </Button>
             </div>
           </div>
