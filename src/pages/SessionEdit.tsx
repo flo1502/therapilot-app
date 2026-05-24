@@ -213,6 +213,22 @@ export default function SessionEdit() {
           />
         </TabsContent>
 
+        <TabsContent value="schemas" className="mt-4">
+          <SchemaChatFeed
+            sessionId={s.id}
+            patientPseudonym={s.patientId}
+            transcript={s.transcript ?? s.rawNotes ?? ""}
+            analysis={s.schemaAnalysis}
+            onAnalysisChange={(result) => {
+              const updated = { ...s, schemaAnalysis: result, schemaAnalyzedAt: result.generatedAt };
+              setS(updated);
+              db.sessions.put(updated);
+            }}
+          />
+        </TabsContent>
+
+
+
         <TabsContent value="slides" className="mt-4">
           <SessionSlidesPanel
             patientId={s.patientId}
