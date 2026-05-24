@@ -1,23 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { db, SessionEntry, SessionFormat, uid } from "@/lib/db";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Sparkles, Mic, MicOff } from "lucide-react";
-import { callAi, StructuredSession } from "@/lib/ai/provider";
+import { Save } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
 import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
 import { SchemaChatFeed } from "@/components/SchemaChatFeed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const FORMATS: SessionFormat[] = ["SOAP", "VT-Verlauf", "Frei"];
+const FORMATS: SessionFormat[] = ["VT-Verlauf", "Frei"];
 
 export default function SessionEdit() {
   const { id } = useParams();
@@ -29,9 +27,6 @@ export default function SessionEdit() {
   const allPatients = useLiveQuery(() => db.patients.toArray(), []);
 
   const [s, setS] = useState<SessionEntry | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const recRef = useRef<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -39,7 +34,7 @@ export default function SessionEdit() {
         const pid = search.get("patient") ?? "";
         setS({
           id: uid("s_"), patientId: pid, date: Date.now(), durationMin: 50,
-          rawNotes: "", format: "SOAP", createdAt: Date.now(),
+          rawNotes: "", format: "VT-Verlauf", createdAt: Date.now(),
         });
       } else {
         const ex = await db.sessions.get(id!);
@@ -56,64 +51,6 @@ export default function SessionEdit() {
     await db.sessions.put(s);
     toast.success("Gespeichert.");
     if (isNew) nav(`/sessions/${s.id}`);
-  };
-
-  const structure = async () => {
-    if (!s.rawNotes.trim()) { toast.error("Bitte Roh-Notizen erfassen."); return; }
-    const patient = allPatients?.find(x => x.id === s.patientId);
-    setBusy(true);
-    try {
-      const result = await callAi<StructuredSession>({
-        task: "structure-session",
-        patientPseudonym: s.patientId,
-        payload: {
-          rawNotes: s.rawNotes,
-          format: s.format,
-          approach: patient?.approach,
-          goals: patient?.goals,
-        },
-      });
-      const struct = `**Subjektiv**\n${result.subjektiv}\n\n**Objektiv**\n${result.objektiv}\n\n**Assessment**\n${result.assessment}\n\n**Plan**\n${result.plan}` +
-        (result.hausaufgabe ? `\n\n**Hausaufgabe**\n${result.hausaufgabe}` : "") +
-        (result.naechsterFokus ? `\n\n**Nächster Fokus**\n${result.naechsterFokus}` : "");
-      const updated = { ...s, structured: struct, homework: result.hausaufgabe, nextFocus: result.naechsterFokus };
-      setS(updated);
-      await db.sessions.put(updated);
-      toast.success("AI-Strukturierung erstellt.");
-    } catch (e: any) {
-      toast.error(e?.message ?? "AI-Fehler");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toggleRec = () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { toast.error("Diktat in diesem Browser nicht verfügbar."); return; }
-    if (recording) {
-      recRef.current?.stop();
-      setRecording(false);
-      return;
-    }
-    const rec = new SR();
-    rec.lang = "de-DE";
-    rec.interimResults = true;
-    rec.continuous = true;
-    let finalText = s.rawNotes;
-    rec.onresult = (e: any) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t + " ";
-        else interim += t;
-      }
-      setS(prev => prev ? { ...prev, rawNotes: finalText + interim } : prev);
-    };
-    rec.onerror = () => setRecording(false);
-    rec.onend = () => setRecording(false);
-    rec.start();
-    recRef.current = rec;
-    setRecording(true);
   };
 
   return (
@@ -152,45 +89,13 @@ export default function SessionEdit() {
         </div>
       </CardContent></Card>
 
-      <Tabs defaultValue="soap" className="w-full">
+      <Tabs defaultValue="kv" className="w-full">
         <TabsList>
-          <TabsTrigger value="soap">SOAP / Strukturierung</TabsTrigger>
           <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
           <TabsTrigger value="schemas">CBT-Schemata</TabsTrigger>
           <TabsTrigger value="slides">Folien</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="soap" className="mt-4">
-          <div className="grid lg:grid-cols-2 gap-4">
-            <Card><CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">Roh-Notiz</Label>
-                <Button type="button" size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
-                  {recording ? <><MicOff className="size-4 mr-1.5" />Stop</> : <><Mic className="size-4 mr-1.5" />Diktat</>}
-                </Button>
-              </div>
-              <Textarea rows={18} value={s.rawNotes} onChange={e => setS({ ...s, rawNotes: e.target.value })}
-                placeholder="Stichpunkte, Themen, Beobachtungen während der Sitzung…" />
-              <Button className="mt-3 w-full" onClick={structure} disabled={busy}>
-                <Sparkles className="size-4 mr-2" />
-                {busy ? "Strukturiere…" : `Mit AI als ${s.format} strukturieren`}
-              </Button>
-            </CardContent></Card>
-
-            <Card><CardContent className="p-5">
-              <Label className="text-sm font-medium">Strukturierte Dokumentation</Label>
-              {s.structured ? (
-                <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                  {s.structured}
-                </div>
-              ) : (
-                <div className="mt-2 text-sm text-muted-foreground italic">
-                  Noch keine Strukturierung. Klicken Sie links auf „Mit AI strukturieren".
-                </div>
-              )}
-            </CardContent></Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="kv" className="mt-4">
           <KVDocumentationPanel
