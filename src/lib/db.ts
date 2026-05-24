@@ -54,6 +54,10 @@ export interface SessionEntry {
     warnings: string[];
     generatedAt: number;
   };
+
+  // CBT-Schema-Analyse (additive, optional)
+  schemaAnalysis?: import("./schemaTypes").SchemaAnalysisResult;
+  schemaAnalyzedAt?: number;
 }
 
 export interface SlideDeck {
@@ -142,6 +146,13 @@ class TheraPilotDB extends Dexie {
     // v3: additive – neue Session-Felder (transcript, kvDocumentation, kvExtraction,
     // kvValidation) sind optional und brauchen keinen neuen Index.
     this.version(3).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v4: additive – CBT-Schema-Analyse Felder, optional, keine neuen Indizes.
+    this.version(4).stores({
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",
