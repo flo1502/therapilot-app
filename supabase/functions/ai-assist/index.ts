@@ -702,16 +702,7 @@ Deno.serve(async (req: Request) => {
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        if (msg === "PAYMENT_REQUIRED") {
-          return new Response(JSON.stringify({ error: "AI-Guthaben aufgebraucht. Bitte in Lovable Workspace aufladen." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        return new Response(JSON.stringify({ error: msg }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-    }
+
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
     const model = (task === "personalize-slides" || task === "generate-stage-slides") ? MODEL_SLIDES : MODEL;
