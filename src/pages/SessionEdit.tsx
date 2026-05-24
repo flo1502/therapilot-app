@@ -89,45 +89,13 @@ export default function SessionEdit() {
         </div>
       </CardContent></Card>
 
-      <Tabs defaultValue="soap" className="w-full">
+      <Tabs defaultValue="kv" className="w-full">
         <TabsList>
-          <TabsTrigger value="soap">SOAP / Strukturierung</TabsTrigger>
           <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
           <TabsTrigger value="schemas">CBT-Schemata</TabsTrigger>
           <TabsTrigger value="slides">Folien</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="soap" className="mt-4">
-          <div className="grid lg:grid-cols-2 gap-4">
-            <Card><CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">Roh-Notiz</Label>
-                <Button type="button" size="sm" variant={recording ? "destructive" : "outline"} onClick={toggleRec}>
-                  {recording ? <><MicOff className="size-4 mr-1.5" />Stop</> : <><Mic className="size-4 mr-1.5" />Diktat</>}
-                </Button>
-              </div>
-              <Textarea rows={18} value={s.rawNotes} onChange={e => setS({ ...s, rawNotes: e.target.value })}
-                placeholder="Stichpunkte, Themen, Beobachtungen während der Sitzung…" />
-              <Button className="mt-3 w-full" onClick={structure} disabled={busy}>
-                <Sparkles className="size-4 mr-2" />
-                {busy ? "Strukturiere…" : `Mit AI als ${s.format} strukturieren`}
-              </Button>
-            </CardContent></Card>
-
-            <Card><CardContent className="p-5">
-              <Label className="text-sm font-medium">Strukturierte Dokumentation</Label>
-              {s.structured ? (
-                <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                  {s.structured}
-                </div>
-              ) : (
-                <div className="mt-2 text-sm text-muted-foreground italic">
-                  Noch keine Strukturierung. Klicken Sie links auf „Mit AI strukturieren".
-                </div>
-              )}
-            </CardContent></Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="kv" className="mt-4">
           <KVDocumentationPanel
