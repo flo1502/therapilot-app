@@ -559,6 +559,96 @@ ${previousErrors.length ? `\nVORHERIGER VERSUCH HATTE FEHLER – BITTE BEHEBEN:\
   return { extraction: extract, documentation };
 }
 
+// ============== CBT-Schema-Analyse ==============
+
+const SCHEMA_CATEGORIES = [
+  "Defekt / Scham",
+  "Versagen / Unzulänglichkeit",
+  "Gefahr / Unsicherheit",
+  "Verlassenwerden",
+  "Misstrauen / Bewertung durch andere",
+  "Kontrollverlust",
+] as const;
+
+const SCHEMA_TOOL = {
+  type: "function",
+  function: {
+    name: "return_schema_analysis",
+    description: "Liefert die CBT-Schema-Analyse als WhatsApp-Style-Feed.",
+    parameters: {
+      type: "object",
+      properties: {
+        schema_summary_chat: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: [...SCHEMA_CATEGORIES] },
+              count: { type: "integer", minimum: 1 },
+              chat_preview: { type: "string", description: "Kurze, scannable Inbox-Notification, z.B. '💬 3 neue Hinweise auf Selbstwert-Schema'." },
+              examples: {
+                type: "array",
+                minItems: 1,
+                items: {
+                  type: "object",
+                  properties: {
+                    trigger_sentence: { type: "string", description: "Exaktes Zitat aus dem Transkript." },
+                    context: { type: "string", description: "Kurzer Kontext (max. 1 Satz)." },
+                    timestamp: { type: "string", description: "Optionaler Zeitstempel falls im Transkript vorhanden." },
+                  },
+                  required: ["trigger_sentence", "context"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["type", "count", "chat_preview", "examples"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["schema_summary_chat"],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function runSchemaAnalysis(apiKey: string, payload: any, pseudo?: string) {
+  const transcript: string = payload?.transcript ?? "";
+  if (!transcript.trim()) throw new Error("Transkript fehlt");
+
+  const system =
+    "Du bist CBT Cognitive Schema Analyst für approbierte Psychotherapeut:innen in Deutschland. " +
+    "Du arbeitest mit pseudonymisierten Transkripten. " +
+    `Patient:in wird mit '${pseudo ?? "[PATIENT:IN]"}' bezeichnet.\n\n` +
+    "AUFGABE: Erkenne dysfunktionale kognitive Schemata (Core Beliefs) im Sitzungs-Transkript und gruppiere sie.\n\n" +
+    "FIXE TAXONOMIE (nur diese 6 Kategorien verwenden):\n" +
+    "- 'Defekt / Scham' (ich bin wertlos, kaputt, nicht gut genug)\n" +
+    "- 'Versagen / Unzulänglichkeit' (ich schaffe das nicht, bin inkompetent)\n" +
+    "- 'Gefahr / Unsicherheit' (es ist gefährlich, ich kippe um)\n" +
+    "- 'Verlassenwerden' (niemand ist für mich da, ich werde verlassen)\n" +
+    "- 'Misstrauen / Bewertung durch andere' (andere bewerten mich, ich blamiere mich)\n" +
+    "- 'Kontrollverlust' (ich drehe durch, werde verrückt, verliere Kontrolle)\n\n" +
+    "STRENGE EVIDENZ-REGELN:\n" +
+    "1. NUR exakte Patient:innen-Zitate oder vom Patienten ausdrücklich BESTÄTIGTE Therapeut-Paraphrasen verwenden.\n" +
+    "2. KEINE Inferenz, KEINE Vermutungen, NIE Beliefs erfinden.\n" +
+    "3. Keyword-Treffer reicht NICHT – die Aussage muss die Schema-Bedeutung tatsächlich tragen.\n" +
+    "4. Counting: jede DISTINKTE Aussage = +1. Reine Wiederholung zählt nur, wenn neuer Kontext oder getrennte Ereignisse.\n" +
+    "5. Wenn keine Evidenz für eine Kategorie: Kategorie WEGLASSEN (kein leerer Eintrag).\n" +
+    "6. trigger_sentence MUSS wörtlich aus dem Transkript stammen.\n" +
+    "7. context: ein knapper Satz, der das Auftreten einordnet (Situation/Thema), KEINE Wertung.\n" +
+    "8. chat_preview: kurz, scannable, Therapeut-Inbox-Stil (z.B. '💬 3 neue Hinweise auf Selbstwert-Schema').\n\n" +
+    "Wenn das Transkript keinerlei Evidenz enthält: leeres Array zurückgeben.";
+
+  return await callGateway(apiKey, "google/gemini-2.5-pro", {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: `Transkript:\n${transcript}` },
+    ],
+    tools: [SCHEMA_TOOL],
+    tool_choice: { type: "function", function: { name: "return_schema_analysis" } },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -590,6 +680,29 @@ Deno.serve(async (req: Request) => {
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
+
+    // Spezial-Pfad: CBT-Schema-Analyse
+    if (task === "cbt-schema-analysis") {
+      try {
+        const result = await runSchemaAnalysis(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        if (msg === "RATE_LIMIT") {
+          return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (msg === "PAYMENT_REQUIRED") {
+          return new Response(JSON.stringify({ error: "AI-Guthaben aufgebraucht." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({ error: msg }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
     const model = (task === "personalize-slides" || task === "generate-stage-slides") ? MODEL_SLIDES : MODEL;

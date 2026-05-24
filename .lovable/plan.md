@@ -1,147 +1,139 @@
-## Ziel
 
-Eine neue, mehrstufige KI-Pipeline in TheraPilot, die aus einem vollständigen (per Diktat/Upload entstandenen) Sitzungs-**Transkript** automatisch eine **KV-konforme, klinisch-neutrale Verlaufsdokumentation** in genau 7 vorgeschriebenen Abschnitten erzeugt — als überprüfbare Vorlage für Therapeut:innen, nicht als Ersatz.
+# CBT-Schema-Analyse für Sitzungstranskripte
 
-## Zielstruktur der Ausgabe (verbindlich, exakt diese 7 Sektionen)
+Ergänzt TheraPilot um eine Schema-Erkennung, die aus dem bestehenden Transkript (KV-Verlauf-Tab) dysfunktionale kognitive Schemata extrahiert und als WhatsApp-artiger Benachrichtigungs-Feed darstellt.
 
-1. Aktuelle Symptomatik
-2. Inhalte der Sitzung
-3. Therapeutische Interventionen
-4. Verlauf und Einschätzung
-5. Vereinbarungen
-6. Risikoabklärung
-7. Administrative / Abrechnungsrelevante Hinweise
+## 1. Datenmodell (`src/lib/db.ts`)
 
-Stilregeln (im Prompt verankert + post-validiert): klinisch-neutral, keine direkte Rede, keine Wertungen, keine spekulativen Diagnosen, knappe Fachsprache, nur explizit Genanntes/Beobachtbares, abrechnungsrelevante Inhalte priorisiert.
+Dexie auf Version 4 anheben. Neue Felder auf `SessionEntry`:
+- `schemaAnalysis?: SchemaAnalysisResult`
+- `schemaAnalyzedAt?: number`
 
-## Mehrstufige Pipeline (Pass-Architektur)
+## 2. Typen (`src/lib/schemaTypes.ts`, neu)
 
-Eine einzige KI-Anfrage über lange Transkripte ist fehleranfällig. Stattdessen 4 sequentielle Schritte in der Edge Function `ai-assist` (neuer Task `kv-documentation`):
+```ts
+export const SCHEMA_CATEGORIES = [
+  "Defekt / Scham",
+  "Versagen / Unzulänglichkeit",
+  "Gefahr / Unsicherheit",
+  "Verlassenwerden",
+  "Misstrauen / Bewertung durch andere",
+  "Kontrollverlust",
+] as const;
 
-```text
-Transkript
-  │
-  ▼
-[1] PRE-PROCESS (lokal, TS)
-  • Pseudonymisierung (bestehend pseudonymize.ts ausgebaut)
-  • Sprecher-Normalisierung (T: / P:)
-  • Chunking falls > ~12k Tokens
-  │
-  ▼
-[2] EXTRACT  (LLM, Tool-Call → JSON)
-  Extrahiert strukturierte Fakten:
-  symptome[], themen[], interventionen[] (klassifiziert: KVT/Exposition/
-  Psychoedukation/Validierung/sokratisch/Skills/Hausaufgabe…),
-  vereinbarungen[], risiken{suizidalitaet, fremdgefahrdung,
-  selbstverletzung, substanz, sonst}, verlauf_indikatoren[],
-  abrechnung{ziffer_hinweise, dauer, format, besonderheiten}
-  │
-  ▼
-[3] COMPOSE  (LLM, Tool-Call → finales 7-Sektionen-Objekt)
-  Nimmt Extraktion + Kontext (Diagnose, Ziele, Vorsitzung) und
-  schreibt die 7 Abschnitte klinisch-neutral, indirekt, knapp.
-  │
-  ▼
-[4] VALIDATE & GUARD (lokal, TS)
-  • Pflicht-Sektionen vorhanden + nicht leer
-  • Verbotsliste: direkte Rede ("..."/„…"), wertende Begriffe
-    (z. B. „leider", „beeindruckend"), spekulative Diagnose-Phrasen
-    („vermutlich F…", „wirkt depressiv")
-  • Risiko-Sektion: explizite Aussage zu Suizidalität (auch wenn
-    „nicht thematisiert / nicht exploriert" — nie leer)
-  • Personalisierungs-Check: kein Klartext-Name (nur Pseudonym)
-  • Score 0–100 + Liste Errors/Warnings
-  • Auto-Retry max. 1x mit Fehlerliste als zusätzlichem Hinweis
+export type SchemaCategory = typeof SCHEMA_CATEGORIES[number];
+
+export interface SchemaExample {
+  trigger_sentence: string;   // exaktes Zitat
+  context: string;            // kurzer Kontext
+  timestamp?: string;         // falls im Transkript vorhanden
+}
+
+export interface SchemaGroup {
+  type: SchemaCategory;
+  count: number;
+  chat_preview: string;       // z.B. "💬 3 neue Hinweise auf Selbstwert-Schema erkannt"
+  examples: SchemaExample[];
+}
+
+export interface SchemaAnalysisResult {
+  session_id: string;
+  schema_summary_chat: SchemaGroup[];
+  generatedAt: number;
+}
 ```
 
-## UI-Integration in `SessionEdit.tsx`
+## 3. Edge Function (`supabase/functions/ai-assist/index.ts`)
 
-- Neuer Tab/Bereich „**Verlaufsdokumentation (KV)**" neben bestehender SOAP-Strukturierung.
-- Eingabequellen:
-  - **Transkript-Feld** (große Textarea) — befüllbar durch:
-    - bestehendes Browser-Diktat (Web Speech API, schon vorhanden, wird erweitert für Langform mit Auto-Save)
-    - Datei-Upload (.txt / .vtt / .srt → in Klartext geparst, lokal)
-- Button: „**KV-Verlauf generieren**" → ruft neuen Task `kv-documentation` auf, zeigt Stage-Progress (Extract → Compose → Validate).
-- Ergebnis-Ansicht: 7 Accordion-Sektionen, je editierbar, jeweils mit „Quelle im Transkript anzeigen" (Sprung zu zitierter Stelle anhand Char-Offsets aus Extract-Pass).
-- ValidationBadge (analog zu vorhandenem Curriculum-Flow) zeigt Score + Errors.
-- Aktionen: „Übernehmen in Dokumentation" (speichert in `session.structured` mit klarer Trennung) + „Als PDF exportieren" (späterer Schritt, vorerst Markdown-Copy).
+Neuer Task `cbt-schema-analysis`:
+- Modell: `google/gemini-2.5-pro` (gut bei nuancierter Klassifikation, großem Kontext)
+- Tool-Calling für strukturiertes JSON (keine freie JSON-Anweisung)
+- Strenger System-Prompt mit den 6 Kategorien als Enum, Evidence-Rule (nur exakte Patient:innenzitate oder vom Patienten bestätigte Therapeut-Paraphrasen), Anti-Keyword-Match-Regel, Counting-Regel, leere Ergebnisse wenn keine Evidenz
+- Input: `{ transcript, sessionId }`
+- Output: `SchemaAnalysisResult`
+- Pseudonymisierung läuft bereits über `pseudonymize` vor dem Call
 
-## Datenmodell
-
-Erweiterung von `SessionEntry` in `src/lib/db.ts` (Dexie-Schema-Bump, additiv):
-
-- `transcript?: string` — vollständiges Roh-Transkript
-- `kvDocumentation?: KVDocumentation` — strukturiertes 7-Sektionen-Objekt
-- `kvExtraction?: KVExtraction` — Zwischenresultat aus Extract-Pass (für Audit/Re-Compose ohne erneuten LLM-Call)
-- `kvValidation?: { score: number; errors: string[]; warnings: string[]; generatedAt: number }`
-
-Neue Typen in neuer Datei `src/lib/kvDocTypes.ts`.
-
-## Backend (Edge Function `ai-assist`)
-
-Neuer Task `kv-documentation` mit zwei internen LLM-Calls (Extract + Compose), beide via Tool-Calling für garantiert strukturiertes JSON. Modell: `openai/gpt-5` für Compose (klinische Präzision), `google/gemini-2.5-pro` für Extract (große Kontextfenster, günstig). Prompt enthält explizit:
-
-- Whitelist erlaubter Intervention-Kategorien (DGPPN-orientiert)
-- Risiko-Heuristiken (passive/aktive Suizidgedanken-Marker)
-- Abrechnungs-Hinweise (Sitzungstyp, Dauer, Setting — keine konkreten EBM-Ziffern, nur Hinweise)
-- Negativ-Regeln (keine direkte Rede, keine Wertung, keine spekulative Diagnose)
-
-Lokale Post-Validation in `src/lib/kvGuardrails.ts` (analog `guardrails.ts`):
-
-- Regex-Detektoren für direkte Rede, Wertungen, Diagnose-Spekulation
-- Pflichtfeld-Checks
-- Risiko-Sektion darf nie leer/„entfällt" sein
-
-Pseudonymisierung wird **vor** dem Senden im bestehenden `deepPseudonymize` mitverarbeitet (bereits aktiv via `provider.ts`).
-
-## Datenschutz
-
-- Transkript bleibt in IndexedDB (lokal-first), Verschlüsselung über bestehendes `crypto.ts` (sofern aktiv).
-- An Edge Function gehen nur pseudonymisierte Inhalte.
-- Keine Persistenz im Backend (Edge Function speichert nichts).
-- Optionaler späterer Schritt: lokales Ollama (`provider.ts` Stub vorhanden) — out of scope dieser Iteration, aber API kompatibel gehalten.
-
-## Was NICHT enthalten ist (bewusst, kann später)
-
-- Echte Audio-Transkription (Whisper/ElevenLabs STT) — diese Iteration arbeitet auf **Text-Transkript** (Diktat-Browser-API + Upload). STT-Integration kann als Folgeschritt erfolgen (Empfehlung: ElevenLabs scribe_v2 via Edge Function — Knowledge dafür liegt bereit).
-- EBM-Ziffer-Automatik — wir liefern nur Hinweise, keine verbindliche Abrechnung.
-- PDF-Export — vorerst Markdown/Copy, PDF in separater Iteration.
-
-## Technische Details
-
-**Geänderte / neue Dateien**
-
-- `src/lib/db.ts` — Dexie v3, neue Felder auf `SessionEntry`
-- `src/lib/kvDocTypes.ts` *(neu)* — `KVDocumentation`, `KVExtraction`, `InterventionKind`, `RiskAssessment`
-- `src/lib/kvGuardrails.ts` *(neu)* — Validatoren + Score
-- `src/lib/ai/provider.ts` — neuer `AiTask` `"kv-documentation"`, Response-Typ `KVDocumentationResult`
-- `src/components/KVDocumentationPanel.tsx` *(neu)* — UI: Transkript-Eingabe, Generieren-Button, 7-Sektionen-Editor, ValidationBadge
-- `src/pages/SessionEdit.tsx` — Tabs (SOAP / KV-Verlauf / Slides), Einbindung des neuen Panels
-- `supabase/functions/ai-assist/index.ts` — neuer Task mit 2-Stufen-Logik (Extract → Compose), Retry bei Validierungsfehlern
-
-**Edge-Function-Flow**
-
-```text
-POST /ai-assist { task: "kv-documentation", payload: { transcript, context } }
-  → Extract-Call (Gemini 2.5 Pro, tool=return_kv_extraction)
-  → Compose-Call (GPT-5, tool=return_kv_documentation, input=Extract+Context)
-  → Response { extraction, documentation }
-Client: validate() → bei Fail → Retry 1x mit errors im Payload
+Tool-Schema (Auszug):
+```ts
+parameters: {
+  type: "object",
+  properties: {
+    schema_summary_chat: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: [...SCHEMA_CATEGORIES] },
+          count: { type: "integer", minimum: 1 },
+          chat_preview: { type: "string" },
+          examples: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                trigger_sentence: { type: "string" },
+                context: { type: "string" },
+                timestamp: { type: "string" }
+              },
+              required: ["trigger_sentence", "context"]
+            }
+          }
+        },
+        required: ["type", "count", "chat_preview", "examples"]
+      }
+    }
+  },
+  required: ["schema_summary_chat"]
+}
 ```
 
-**Stil-Validator (Auszug Regex)**
+## 4. AI-Provider (`src/lib/ai/provider.ts`)
 
-- direkte Rede: `/["„][^"""]{4,}["""]/` (mit Whitelist für Fachzitate)
-- Wertungen: `\b(leider|erfreulicherweise|beeindruckend|schwach|stark betroffen)\b`
-- Diagnose-Spekulation: `\b(vermutlich|wahrscheinlich|wirkt) (depressiv|ängstlich|traumatisiert|F\d{2})\b`
+`AiTask` um `"cbt-schema-analysis"` erweitern; kein UI-spezifisches Verhalten, nur Pass-Through.
 
-**Backward-Kompatibilität**
+## 5. UI-Komponente (`src/components/SchemaChatFeed.tsx`, neu)
 
-- Bestehende `structure-session` (SOAP/VT-Verlauf/Frei) bleibt unverändert; der neue KV-Task ist additiv.
-- Existierende Sitzungen ohne `transcript` zeigen Panel im Leerzustand mit Hinweis „Bitte Transkript erfassen oder hochladen".
+WhatsApp-Style Feed mit:
+- Header: „💬 CBT Schema Alert" + „Analysieren"-Button + Re-Run + Stand-Zeitstempel
+- Pro Schema eine **Chat-Bubble** (Card mit abgerundeten Ecken, farbcodierter Punkt 🔴🟠🟡 je nach Count, links-bündig wie eingehende Nachricht):
+  - Titel: `Kategorie ↑ count`
+  - Top 2 Zitate als Vorschau
+  - „Tap for details" → expandiert (Accordion) alle `examples` mit `trigger_sentence`, `context`, optional Timestamp
+- Leerer Zustand: „Keine schemarelevanten Aussagen erkannt."
+- Keine Bearbeitung – read-only Analyse
 
-## Offene Punkte für dich vor Implementierung
+Farbcode:
+- count ≥ 3 → destructive
+- count = 2 → warning (orange)
+- count = 1 → muted
 
-1. Soll bereits in dieser Iteration ein echter **STT (Audio-Upload → Transkript)** mit dabei sein (z. B. ElevenLabs scribe_v2), oder reicht erstmal Browser-Diktat + Text-Upload?
-2. Sollen die 7 Sektionen frei editierbar sein nach Generierung (Recommended: ja) und beim Speichern als zusammenhängendes Markdown ins bestehende `session.structured` gemappt werden, oder separat gehalten (`kvDocumentation`)?
-3. Möchtest du im Risiko-Pass ein explizites **Suizid-Screening-Schema** (z. B. C-SSRS-Items als Checkliste) zusätzlich zur Freitextzusammenfassung?
+## 6. Integration in `SessionEdit.tsx`
+
+Neuer Tab **„CBT-Schemata"** neben SOAP / KV-Verlauf / Folien:
+- nutzt `s.transcript` (oder Fallback `s.rawNotes`)
+- Wenn kein Transkript: Hinweis „Bitte Transkript im KV-Verlauf-Tab einfügen."
+- Button „Schemata analysieren" → ruft Edge Function → speichert `schemaAnalysis` in Dexie
+- Re-Analyse möglich
+
+## 7. Stil & Design
+
+- Tailwind semantische Tokens, keine Custom-Farben
+- Chat-Bubbles: `rounded-2xl rounded-tl-sm bg-muted/40` mit subtilem Schatten
+- Monospace nicht nötig; bestehende Schrift
+- Mobil-first (User-Viewport ist klein)
+
+## 8. Sicherheit / Datenschutz
+
+- Transkript wird bereits pseudonymisiert vor AI-Call (bestehende `deepPseudonymize`)
+- Ergebnis wird **nur lokal in Dexie** gespeichert, nicht serverseitig
+
+## 9. Out of Scope (jetzt nicht)
+
+- Persistente Verlaufsanalyse über mehrere Sessions
+- Export als PDF
+- Editierbarkeit der Treffer
+
+## Offene Fragen
+
+1. Soll die Analyse **automatisch** nach erfolgreicher KV-Verlaufserzeugung mitlaufen, oder nur **manuell per Button** im neuen Tab? (Empfehlung: manuell – Token-Kosten + Therapeut entscheidet.)
+2. Soll der Feed zusätzlich auf einer **Patient-Detail-Seite** kumuliert über alle Sessions angezeigt werden, oder reicht für jetzt **pro Session**? (Empfehlung: pro Session jetzt, Aggregation später.)
