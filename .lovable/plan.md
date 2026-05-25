@@ -1,139 +1,112 @@
 
-# CBT-Schema-Analyse für Sitzungstranskripte
+# Therapieverlauf – Depression KPI Dashboard
 
-Ergänzt TheraPilot um eine Schema-Erkennung, die aus dem bestehenden Transkript (KV-Verlauf-Tab) dysfunktionale kognitive Schemata extrahiert und als WhatsApp-artiger Benachrichtigungs-Feed darstellt.
+Neuer Tab neben „CBT-Schemata", der über mehrere Sessions hinweg den Therapiefortschritt einer Patient:in (Fokus Depression F32/F33) visualisiert.
 
-## 1. Datenmodell (`src/lib/db.ts`)
+## 1. Datenmodell (additive, lokal in Dexie)
 
-Dexie auf Version 4 anheben. Neue Felder auf `SessionEntry`:
-- `schemaAnalysis?: SchemaAnalysisResult`
-- `schemaAnalyzedAt?: number`
-
-## 2. Typen (`src/lib/schemaTypes.ts`, neu)
+Pro Session werden KPIs extrahiert und gespeichert. Neu auf `SessionEntry`:
 
 ```ts
-export const SCHEMA_CATEGORIES = [
-  "Defekt / Scham",
-  "Versagen / Unzulänglichkeit",
-  "Gefahr / Unsicherheit",
-  "Verlassenwerden",
-  "Misstrauen / Bewertung durch andere",
-  "Kontrollverlust",
-] as const;
-
-export type SchemaCategory = typeof SCHEMA_CATEGORIES[number];
-
-export interface SchemaExample {
-  trigger_sentence: string;   // exaktes Zitat
-  context: string;            // kurzer Kontext
-  timestamp?: string;         // falls im Transkript vorhanden
+interface SessionKPIs {
+  depressionSeverity: number;        // 0–100 (DSI)
+  negativeBeliefsCount: number;
+  adaptiveBeliefsCount: number;
+  positiveActivitiesCount: number;
+  activeActivities?: number;
+  passiveActivities?: number;
+  socialContactsCount: number;
+  socialInitiated?: number;
+  socialPassive?: number;
+  emotionAwareness: number;          // 0–5
+  emotionRegulation: number;         // 0–5
+  positiveSelfStatements: number;
+  negativeSelfStatements?: number;
+  notes?: string;
+  extractedAt: number;
 }
-
-export interface SchemaGroup {
-  type: SchemaCategory;
-  count: number;
-  chat_preview: string;       // z.B. "💬 3 neue Hinweise auf Selbstwert-Schema erkannt"
-  examples: SchemaExample[];
-}
-
-export interface SchemaAnalysisResult {
-  session_id: string;
-  schema_summary_chat: SchemaGroup[];
-  generatedAt: number;
-}
+sessionKPIs?: SessionKPIs;
 ```
 
-## 3. Edge Function (`supabase/functions/ai-assist/index.ts`)
+Dexie auf v5 hochziehen (additiv, kein neuer Index).
 
-Neuer Task `cbt-schema-analysis`:
-- Modell: `google/gemini-2.5-pro` (gut bei nuancierter Klassifikation, großem Kontext)
-- Tool-Calling für strukturiertes JSON (keine freie JSON-Anweisung)
-- Strenger System-Prompt mit den 6 Kategorien als Enum, Evidence-Rule (nur exakte Patient:innenzitate oder vom Patienten bestätigte Therapeut-Paraphrasen), Anti-Keyword-Match-Regel, Counting-Regel, leere Ergebnisse wenn keine Evidenz
-- Input: `{ transcript, sessionId }`
-- Output: `SchemaAnalysisResult`
-- Pseudonymisierung läuft bereits über `pseudonymize` vor dem Call
+Composite-Metriken berechnet im Frontend:
+- **Cognitive Shift Index** = adaptive − negative
+- **Depression Recovery Index (DRI)** = gewichteter Score (Symptom invertiert + Cognition + Behavior + Social + Emotion + Self-worth) → 0–100
 
-Tool-Schema (Auszug):
-```ts
-parameters: {
-  type: "object",
-  properties: {
-    schema_summary_chat: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          type: { type: "string", enum: [...SCHEMA_CATEGORIES] },
-          count: { type: "integer", minimum: 1 },
-          chat_preview: { type: "string" },
-          examples: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                trigger_sentence: { type: "string" },
-                context: { type: "string" },
-                timestamp: { type: "string" }
-              },
-              required: ["trigger_sentence", "context"]
-            }
-          }
-        },
-        required: ["type", "count", "chat_preview", "examples"]
-      }
-    }
-  },
-  required: ["schema_summary_chat"]
-}
+## 2. KI-Extraktion
+
+Neuer Task `depression-kpi-extract` in `supabase/functions/ai-assist/index.ts` (Gemini 2.5 Pro mit Tool-Calling für strukturiertes JSON). Input: Transcript + optional `kvDocumentation` + `schemaAnalysis`. Output: `SessionKPIs`-Objekt mit konservativen Defaults (0), nur was im Transcript belegt ist.
+
+Auslösung: Button „KPIs extrahieren" pro Session im Dashboard-Header (oder automatisch beim Öffnen, falls fehlend). Gespeichert via `db.sessions.put`.
+
+## 3. UI / Komponenten
+
+Neuer Tab in `SessionEdit.tsx`:
+```
+[ KV-Verlauf ] [ CBT-Schemata ] [ Therapieverlauf ] [ Folien ]
 ```
 
-## 4. AI-Provider (`src/lib/ai/provider.ts`)
+Da der Verlauf patientenübergreifend (alle Sessions des Patienten) ist, lädt die Komponente `db.sessions.where('patientId').equals(patientId)` und sortiert nach Datum.
 
-`AiTask` um `"cbt-schema-analysis"` erweitern; kein UI-spezifisches Verhalten, nur Pass-Through.
+Neue Datei `src/components/TherapieverlaufDashboard.tsx` mit internen Sub-Tabs:
 
-## 5. UI-Komponente (`src/components/SchemaChatFeed.tsx`, neu)
+```
+[ Overview ] [ Symptoms ] [ Cognitive Shift ] [ Behavior ] [ Social ] [ Emotion ] [ Self-Worth ]
+```
 
-WhatsApp-Style Feed mit:
-- Header: „💬 CBT Schema Alert" + „Analysieren"-Button + Re-Run + Stand-Zeitstempel
-- Pro Schema eine **Chat-Bubble** (Card mit abgerundeten Ecken, farbcodierter Punkt 🔴🟠🟡 je nach Count, links-bündig wie eingehende Nachricht):
-  - Titel: `Kategorie ↑ count`
-  - Top 2 Zitate als Vorschau
-  - „Tap for details" → expandiert (Accordion) alle `examples` mit `trigger_sentence`, `context`, optional Timestamp
-- Leerer Zustand: „Keine schemarelevanten Aussagen erkannt."
-- Keine Bearbeitung – read-only Analyse
+### Overview
+- **DRI Big Number** mit Trend-Pfeil (aktuell vs. erste Session)
+- Mini-Sparklines für jede der 6 KPI-Kategorien
+- Session-Count + Zeitraum
 
-Farbcode:
-- count ≥ 3 → destructive
-- count = 2 → warning (orange)
-- count = 1 → muted
+### Symptoms (DSI)
+- Area-Chart (Recharts `AreaChart`) mit Gradient rot→gelb→grün
+- X: Session-Nummer, Y: 0–100
 
-## 6. Integration in `SessionEdit.tsx`
+### Cognitive Shift
+- Dual Line Chart: rote Linie (negative), grüne Linie (adaptive)
+- Darunter: Cognitive Shift Index als Bar Chart pro Session
 
-Neuer Tab **„CBT-Schemata"** neben SOAP / KV-Verlauf / Folien:
-- nutzt `s.transcript` (oder Fallback `s.rawNotes`)
-- Wenn kein Transkript: Hinweis „Bitte Transkript im KV-Verlauf-Tab einfügen."
-- Button „Schemata analysieren" → ruft Edge Function → speichert `schemaAnalysis` in Dexie
-- Re-Analyse möglich
+### Behavior
+- Stacked Bar Chart: active (grün) + passive (grau)
+- Tooltip mit Totals
 
-## 7. Stil & Design
+### Social
+- Line Chart mit Dots, Tooltip zeigt initiated vs. passive
 
-- Tailwind semantische Tokens, keine Custom-Farben
-- Chat-Bubbles: `rounded-2xl rounded-tl-sm bg-muted/40` mit subtilem Schatten
-- Monospace nicht nötig; bestehende Schrift
-- Mobil-first (User-Viewport ist klein)
+### Emotion Regulation
+- Step Chart (Recharts `LineChart type="step"`) für Awareness + Regulation (0–5)
+- Daneben Milestone-Liste mit Checkmarks (erreicht, wenn Score ≥ Schwelle)
 
-## 8. Sicherheit / Datenschutz
+### Self-Worth
+- Line Chart positive self statements; optional zweite Linie negative
 
-- Transkript wird bereits pseudonymisiert vor AI-Call (bestehende `deepPseudonymize`)
-- Ergebnis wird **nur lokal in Dexie** gespeichert, nicht serverseitig
+## 4. Verwendete Bibliothek
 
-## 9. Out of Scope (jetzt nicht)
+`recharts` ist bereits via `chart.tsx` im Projekt. Keine neuen Dependencies.
 
-- Persistente Verlaufsanalyse über mehrere Sessions
-- Export als PDF
-- Editierbarkeit der Treffer
+## 5. Edge Cases
+
+- 0 Sessions mit KPIs → Empty State mit CTA „KPIs für diese Session extrahieren"
+- 1 Session → Charts mit einem Datenpunkt + Hinweis „mind. 2 Sessions für Trends"
+- Patient hat keine Depression-Diagnose → Banner „Dashboard optimiert für F32/F33", aber trotzdem nutzbar
+- Manuelle Korrektur: Edit-Dialog pro Session, um KI-Werte zu überschreiben (Therapeut bleibt im Lead)
+
+## 6. Dateien
+
+**Neu:**
+- `src/components/TherapieverlaufDashboard.tsx` (Haupt-View mit Sub-Tabs)
+- `src/components/kpi/SymptomChart.tsx`, `CognitiveShiftChart.tsx`, `BehaviorChart.tsx`, `SocialChart.tsx`, `EmotionChart.tsx`, `SelfWorthChart.tsx`, `DRIOverview.tsx`, `KPIEditDialog.tsx`
+- `src/lib/kpiTypes.ts` (Typen + DRI-Berechnung)
+
+**Geändert:**
+- `src/lib/db.ts` (v5, `sessionKPIs` Feld)
+- `src/pages/SessionEdit.tsx` (neuer Tab)
+- `supabase/functions/ai-assist/index.ts` (neuer Task)
+- `src/lib/ai/provider.ts` (Task-Typ)
 
 ## Offene Fragen
 
-1. Soll die Analyse **automatisch** nach erfolgreicher KV-Verlaufserzeugung mitlaufen, oder nur **manuell per Button** im neuen Tab? (Empfehlung: manuell – Token-Kosten + Therapeut entscheidet.)
-2. Soll der Feed zusätzlich auf einer **Patient-Detail-Seite** kumuliert über alle Sessions angezeigt werden, oder reicht für jetzt **pro Session**? (Empfehlung: pro Session jetzt, Aggregation später.)
+1. Soll das Dashboard nur depressions-spezifisch sein, oder generisch mit Depression als Default? (Plan: Default Depression, später erweiterbar.)
+2. KPI-Extraktion automatisch beim Öffnen oder nur manuell per Button? (Plan: manuell, um Kosten/Latenz zu kontrollieren.)
