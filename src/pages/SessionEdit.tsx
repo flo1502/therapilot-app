@@ -132,7 +132,16 @@ export default function SessionEdit() {
               db.sessions.put(updated);
             }}
           />
+        <TabsContent value="verlauf" className="mt-4">
+          <TherapieverlaufDashboard
+            patientId={s.patientId}
+            currentSessionId={s.id}
+            currentTranscript={s.transcript ?? s.rawNotes ?? ""}
+            patientPseudonym={s.patientId}
+          />
         </TabsContent>
+
+
 
 
 
