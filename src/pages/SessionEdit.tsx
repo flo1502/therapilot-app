@@ -13,6 +13,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
 import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
 import { SchemaChatFeed } from "@/components/SchemaChatFeed";
+import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FORMATS: SessionFormat[] = ["VT-Verlauf", "Frei"];
@@ -93,6 +94,7 @@ export default function SessionEdit() {
         <TabsList>
           <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
           <TabsTrigger value="schemas">CBT-Schemata</TabsTrigger>
+          <TabsTrigger value="verlauf">Therapieverlauf</TabsTrigger>
           <TabsTrigger value="slides">Folien</TabsTrigger>
         </TabsList>
 
