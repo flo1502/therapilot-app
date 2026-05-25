@@ -132,6 +132,9 @@ export default function SessionEdit() {
               db.sessions.put(updated);
             }}
           />
+        </TabsContent>
+
+
         <TabsContent value="verlauf" className="mt-4">
           <TherapieverlaufDashboard
             patientId={s.patientId}
