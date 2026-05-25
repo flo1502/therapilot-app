@@ -57,11 +57,20 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
   const hasCurrentKPIs = !!currentRow?.kpis;
 
   const extractCurrent = async () => {
+    if (!patientId) {
+      toast.error("Bitte zuerst Patient:in wählen und Session speichern.");
+      return;
+    }
     if (!currentTranscript.trim()) {
       toast.error("Bitte zuerst ein Transkript im KV-Verlauf-Tab erfassen.");
       return;
     }
-    if (!currentRow) return;
+    // Session muss in DB existieren (sonst /sessions/neu noch ungespeichert)
+    const persisted = await db.sessions.get(currentSessionId);
+    if (!persisted) {
+      toast.error("Bitte Session zuerst oben speichern, dann KPIs extrahieren.");
+      return;
+    }
     setBusy(true);
     try {
       const data = await callAi<Omit<SessionKPIs, "extractedAt">>({
@@ -70,10 +79,10 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
         payload: { transcript: currentTranscript, sessionId: currentSessionId },
       });
       const kpis: SessionKPIs = { ...data, extractedAt: Date.now() };
-      const updated = { ...currentRow.session, sessionKPIs: kpis };
-      await db.sessions.put(updated);
+      await db.sessions.put({ ...persisted, sessionKPIs: kpis });
       toast.success("KPIs extrahiert.");
     } catch (e: any) {
+      console.error("KPI extract error:", e);
       toast.error(e?.message ?? "AI-Fehler");
     } finally {
       setBusy(false);
