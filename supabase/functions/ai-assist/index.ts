@@ -649,6 +649,67 @@ async function runSchemaAnalysis(apiKey: string, payload: any, pseudo?: string) 
   });
 }
 
+// ============== Depression KPI Extraction ==============
+
+const KPI_TOOL = {
+  type: "function",
+  function: {
+    name: "return_session_kpis",
+    description: "Extrahiert quantitative Depression-KPIs aus der Sitzung.",
+    parameters: {
+      type: "object",
+      properties: {
+        depressionSeverity: { type: "integer", minimum: 0, maximum: 100, description: "Depression Severity Index 0-100, basierend auf Selbstbeschreibung und Beobachtung. 0=keine Symptome, 100=schwerste Symptome." },
+        negativeBeliefsCount: { type: "integer", minimum: 0, description: "Anzahl distinkter negativer Grundannahmen / dysfunktionaler Kognitionen." },
+        adaptiveBeliefsCount: { type: "integer", minimum: 0, description: "Anzahl distinkter adaptiver / positiver Grundannahmen oder Reframings." },
+        positiveActivitiesCount: { type: "integer", minimum: 0, description: "Anzahl positiver Aktivitäten, die seit letzter Sitzung berichtet wurden." },
+        activeActivities: { type: "integer", minimum: 0, description: "Davon aktiv-belohnende Aktivitäten (Sport, Hobby, soziale Initiative)." },
+        passiveActivities: { type: "integer", minimum: 0, description: "Davon passiv-konsumierende Aktivitäten (TV, Scrollen)." },
+        socialContactsCount: { type: "integer", minimum: 0, description: "Anzahl sozialer Kontakte / Begegnungen im Zeitraum." },
+        socialInitiated: { type: "integer", minimum: 0, description: "Davon vom Patient:in selbst initiiert." },
+        socialPassive: { type: "integer", minimum: 0, description: "Davon passiv / von anderen initiiert." },
+        emotionAwareness: { type: "integer", minimum: 0, maximum: 5, description: "Fähigkeit Emotionen zu erkennen/benennen, 0-5." },
+        emotionRegulation: { type: "integer", minimum: 0, maximum: 5, description: "Fähigkeit Emotionen aktiv zu regulieren, 0-5." },
+        positiveSelfStatements: { type: "integer", minimum: 0, description: "Anzahl positiver Selbstaussagen (z.B. 'ich habe das geschafft')." },
+        negativeSelfStatements: { type: "integer", minimum: 0, description: "Anzahl negativer Selbstaussagen (z.B. 'ich bin nichts wert')." },
+        notes: { type: "string", description: "Kurze Begründung der Einschätzung, 1-2 Sätze." },
+      },
+      required: [
+        "depressionSeverity","negativeBeliefsCount","adaptiveBeliefsCount",
+        "positiveActivitiesCount","socialContactsCount",
+        "emotionAwareness","emotionRegulation","positiveSelfStatements",
+      ],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function runKPIExtraction(apiKey: string, payload: any, pseudo?: string) {
+  const transcript: string = payload?.transcript ?? "";
+  if (!transcript.trim()) throw new Error("Transkript fehlt");
+
+  const system =
+    "Du bist ein quantitativer Therapie-Analyst für Depression (F32/F33) in Deutschland. " +
+    `Du arbeitest mit pseudonymisierten Sitzungs-Transkripten. Patient:in: '${pseudo ?? "[PATIENT:IN]"}'.\n\n` +
+    "AUFGABE: Extrahiere QUANTITATIVE KPIs aus einer einzelnen Sitzung zur Verlaufsbeobachtung.\n\n" +
+    "STRENGE REGELN:\n" +
+    "1. Nur zählen, was im Transkript explizit genannt oder klar erkennbar ist.\n" +
+    "2. Im Zweifel niedriger schätzen / 0 zurückgeben. Keine Spekulation.\n" +
+    "3. depressionSeverity: Gesamt-Eindruck 0-100. Orientiere dich grob an PHQ-9-Logik (Schlaf, Antrieb, Anhedonie, Hoffnungslosigkeit, Suizidgedanken, Konzentration, Appetit, Selbstwert, Verlangsamung). NICHT diagnostisch, nur Verlaufs-Indikator.\n" +
+    "4. Beliefs: zähle DISTINKTE Aussagen, nicht Wiederholungen.\n" +
+    "5. emotionAwareness/Regulation 0-5: 0=nicht beobachtet, 1=nur Andeutung, 3=klar vorhanden, 5=souverän eingesetzt.\n" +
+    "6. notes: kurze Begründung, 1-2 Sätze, neutral.";
+
+  return await callGateway(apiKey, "google/gemini-2.5-pro", {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: `Sitzungs-Transkript:\n${transcript}` },
+    ],
+    tools: [KPI_TOOL],
+    tool_choice: { type: "function", function: { name: "return_session_kpis" } },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -700,6 +761,24 @@ Deno.serve(async (req: Request) => {
         }
         return new Response(JSON.stringify({ error: msg }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+
+    // Spezial-Pfad: Depression KPI Extraction
+    if (task === "depression-kpi-extract") {
+      try {
+        const result = await runKPIExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
+                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        return new Response(JSON.stringify({ error: text }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
