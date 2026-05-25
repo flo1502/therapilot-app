@@ -58,6 +58,9 @@ export interface SessionEntry {
   // CBT-Schema-Analyse (additive, optional)
   schemaAnalysis?: import("./schemaTypes").SchemaAnalysisResult;
   schemaAnalyzedAt?: number;
+
+  // Depression KPI Tracking (additive, optional)
+  sessionKPIs?: import("./kpiTypes").SessionKPIs;
 }
 
 export interface SlideDeck {
@@ -153,6 +156,13 @@ class TheraPilotDB extends Dexie {
     });
     // v4: additive – CBT-Schema-Analyse Felder, optional, keine neuen Indizes.
     this.version(4).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v5: additive – sessionKPIs für Depression-Dashboard, keine neuen Indizes.
+    this.version(5).stores({
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",
