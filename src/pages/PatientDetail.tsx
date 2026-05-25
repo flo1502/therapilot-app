@@ -49,19 +49,26 @@ export default function PatientDetail() {
               {(!sessions || sessions.length === 0) && (
                 <div className="p-5 text-sm text-muted-foreground">Noch keine Sessions.</div>
               )}
-              {sessions?.map(s => (
-                <Link key={s.id} to={`/sessions/${s.id}`} className="block p-4 hover:bg-muted/50">
-                  <div className="flex justify-between text-sm">
-                    <div>
-                      <div className="font-medium">{formatDateTime(s.date)}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                        {s.structured ? "Strukturiert ✓" : "Roh-Notiz"} · {s.format}
+              {sessions?.map((s, idx) => {
+                const total = sessions.length;
+                const nr = total - idx; // reverse-sorted: newest first
+                return (
+                  <Link key={s.id} to={`/sessions/${s.id}`} className="block p-4 hover:bg-muted/50">
+                    <div className="flex justify-between items-center text-sm gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Badge variant="secondary" className="shrink-0">Session {nr}</Badge>
+                        <div className="min-w-0">
+                          <div className="font-medium">{formatDateTime(s.date)}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                            {s.structured || s.kvDocumentation ? "Strukturiert ✓" : "Roh-Notiz"} · {s.format}
+                          </div>
+                        </div>
                       </div>
+                      <Badge variant="outline" className="shrink-0">{s.durationMin} min</Badge>
                     </div>
-                    <Badge variant="outline">{s.durationMin} min</Badge>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </CardContent></Card>
           </section>
 
