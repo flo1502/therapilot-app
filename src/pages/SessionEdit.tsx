@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ensureAuthed } from "@/lib/authGuard";
 import { Save } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
@@ -50,6 +51,7 @@ export default function SessionEdit() {
 
   const save = async () => {
     if (!s.patientId) { toast.error("Bitte Patient:in wählen."); return; }
+    if (!(await ensureAuthed())) return;
     await db.sessions.put(s);
     toast.success("Gespeichert.");
     if (isNew) nav(`/sessions/${s.id}`);

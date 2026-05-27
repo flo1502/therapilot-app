@@ -18,6 +18,7 @@ import SlideNew from "./pages/SlideNew";
 import SlideEditor from "./pages/SlideEditor";
 import SlidePresent from "./pages/SlidePresent";
 import Settings from "./pages/Settings";
+import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => {
               <Route path="/slides/:id" element={<SlideEditor />} />
               <Route path="/slides/:id/praesentieren" element={<SlidePresent />} />
               <Route path="/einstellungen" element={<Settings />} />
+              <Route path="/auth" element={<AuthPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppShell>

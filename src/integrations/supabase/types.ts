@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      decks: {
+        Row: {
+          data: Json
+          id: string
+          patient_id: string | null
+          updated_at: number
+        }
+        Insert: {
+          data: Json
+          id: string
+          patient_id?: string | null
+          updated_at?: number
+        }
+        Update: {
+          data?: Json
+          id?: string
+          patient_id?: string | null
+          updated_at?: number
+        }
+        Relationships: []
+      }
+      patients: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: number
+        }
+        Insert: {
+          data: Json
+          id: string
+          updated_at?: number
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: number
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          data: Json
+          id: string
+          patient_id: string | null
+          updated_at: number
+        }
+        Insert: {
+          data: Json
+          id: string
+          patient_id?: string | null
+          updated_at?: number
+        }
+        Update: {
+          data?: Json
+          id?: string
+          patient_id?: string | null
+          updated_at?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

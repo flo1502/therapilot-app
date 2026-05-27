@@ -1,9 +1,10 @@
-import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, BookMarked, Presentation, Settings, Lock, ShieldCheck } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Users, FileText, BookMarked, Presentation, Settings, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { lock } from "@/lib/crypto";
 import { ReactNode, useEffect, useState } from "react";
+import { useAuth, signOut } from "@/lib/authState";
+import { toast } from "sonner";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -16,9 +17,11 @@ const NAV = [
 
 interface Props { children: ReactNode; onLock: () => void }
 
-export function AppShell({ children, onLock }: Props) {
+export function AppShell({ children }: Props) {
   const loc = useLocation();
+  const nav = useNavigate();
   const [dark, setDark] = useState(false);
+  const { user, isAuthed } = useAuth();
 
   useEffect(() => {
     const stored = localStorage.getItem("therapilot.theme");
@@ -32,6 +35,15 @@ export function AppShell({ children, onLock }: Props) {
     localStorage.setItem("therapilot.theme", next ? "dark" : "light");
   };
 
+  const handleAuth = async () => {
+    if (isAuthed) {
+      await signOut();
+      toast.success("Ausgeloggt.");
+    } else {
+      nav("/auth");
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
@@ -42,7 +54,7 @@ export function AppShell({ children, onLock }: Props) {
             </div>
             <div>
               <div className="text-base font-display font-semibold">TheraPilot</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Beta · Lokal</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Demo · Cloud</div>
             </div>
           </div>
         </div>
@@ -64,11 +76,16 @@ export function AppShell({ children, onLock }: Props) {
           })}
         </nav>
         <div className="p-3 border-t border-sidebar-border space-y-2">
+          {isAuthed && user?.email && (
+            <div className="text-[11px] text-muted-foreground px-2 truncate" title={user.email}>{user.email}</div>
+          )}
           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={toggleDark}>
             {dark ? "☀️ Hell" : "🌙 Dunkel"}
           </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { lock(); onLock(); }}>
-            <Lock className="size-4 mr-2" /> Sperren
+          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleAuth}>
+            {isAuthed
+              ? (<><LogOut className="size-4 mr-2" /> Logout</>)
+              : (<><LogIn className="size-4 mr-2" /> Login</>)}
           </Button>
         </div>
       </aside>
@@ -76,8 +93,8 @@ export function AppShell({ children, onLock }: Props) {
       <main className="flex-1 min-w-0">
         <div className="md:hidden border-b border-border px-4 py-3 flex items-center justify-between bg-card">
           <div className="font-display font-semibold">TheraPilot</div>
-          <Button size="sm" variant="ghost" onClick={() => { lock(); onLock(); }}>
-            <Lock className="size-4" />
+          <Button size="sm" variant="ghost" onClick={handleAuth}>
+            {isAuthed ? <LogOut className="size-4" /> : <LogIn className="size-4" />}
           </Button>
         </div>
         <div className="md:hidden border-b border-border bg-sidebar px-2 py-2 flex gap-1 overflow-x-auto">

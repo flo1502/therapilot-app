@@ -1,65 +1,54 @@
+
+# Patientendaten in der Cloud teilen (öffentlich lesbar, Login zum Bearbeiten)
+
 ## Ziel
+Jeder, der den Link öffnet, sieht dieselben Patienten, Sessions und Slide-Decks und kann den kompletten Workflow durchklicken. Bearbeiten/Anlegen/Löschen geht nur eingeloggt. Deine aktuell lokal gespeicherten Daten werden einmalig in die Cloud hochgeladen.
 
-Das **Anamnese-Profil IST das Patientenprofil**. Die bisherige Trennung (Stammdaten links, Anamnese im Session-Tab) wird aufgelöst. Therapieverlauf bleibt klar getrennt — Anamnese = wer ist die Person, Therapieverlauf = wie entwickelt sich die Therapie.
+## Wichtiger Hinweis zur Verschlüsselung
+Der bisherige lokale Krypto-Layer (Master-Passwort, AES-GCM im Browser) funktioniert nicht mehr, sobald Daten geteilt werden — andere Browser haben den Schlüssel nicht. Für „jeder mit Link sieht alles" werden Klarnamen/Notizen in der Cloud im Klartext liegen. **Bitte nur mit Demo-/Fake-Patientendaten benutzen, keine echten Patienten.**
 
-## Struktur danach
+## Was gebaut wird
 
-```text
-/patienten/:id  (PatientDetail)
-├── Tab "Anamnese-Profil"       ← NEU, ersetzt linke Stammdaten-Karte
-│   └── AnamneseProfilePanel mit allen Bögen 1–3
-│       + Auto-Fill-Button "Aus Sessions 1–7 aufbauen"
-├── Tab "Therapieverlauf"        ← NEU auf Patient-Ebene
-│   └── TherapieverlaufDashboard (KPIs + Pattern Engine)
-├── Tab "Sessions"               ← bisherige Sessions-Liste
-└── Tab "Slide-Decks"            ← bisherige Decks-Liste
-```
+### 1. Cloud-Schema (Lovable Cloud)
+Drei Tabellen, die die bisherigen Dexie-Tabellen 1:1 spiegeln:
+- `patients` — alle Felder aus `Patient` (id als TEXT Primary Key = Pseudonym wie `P-2026-001`, plus `name`, `notes`, `anamnese_profile jsonb`, `curriculum_*` Felder usw.)
+- `sessions` — alle Felder aus `SessionEntry` inkl. `kv_documentation`, `schema_analysis`, `session_kpis`, `transcript` als jsonb/text
+- `decks` — Slide-Decks mit `slides jsonb`
 
-Im **SessionEdit** wird der Anamnese-Tab entfernt (gehört aufs Patientenprofil, nicht in eine einzelne Session). Stattdessen kommt dort nur ein kleiner Button **„Diese Session ins Anamnese-Profil einfließen lassen"** in der Kopfzeile / im KV-Tab.
+Zugriff:
+- **SELECT**: `USING (true)` für `anon` + `authenticated` → jeder sieht alles
+- **INSERT/UPDATE/DELETE**: nur `authenticated`
+- GRANTs entsprechend gesetzt
 
-## Patient-Profil neu strukturiert nach Anamnese
+### 2. Auth
+- Email+Passwort Login (Standard), Google Sign-In
+- Neue Seite `/login` mit Sign-up + Sign-in
+- `AppShell` zeigt oben rechts „Login" / „Logout" + aktuellen User
+- `LockScreen` (Master-Passwort) entfällt — wird durch normalen Auth-Flow ersetzt
 
-`PatientDetail.tsx` wird umgebaut zu:
+### 3. Data-Layer-Umbau (`src/lib/db.ts` → `src/lib/cloudDb.ts`)
+- Neuer Cloud-Repo-Layer mit denselben Funktionen wie heute Dexie (`getPatient`, `listPatients`, `upsertPatient`, `listSessions`, …)
+- `useLiveQuery(dexie)` wird durch React-Query + Supabase-Realtime ersetzt, damit Updates live durchschlagen
+- Schreib-Funktionen prüfen `supabase.auth.getUser()` und werfen `"Bitte einloggen"` wenn nicht authentifiziert; UI versteckt Bearbeiten-Buttons in dem Fall
+- Krypto-Felder (`encName`, `encNotes`) werden zu normalen Text-Spalten (`name`, `notes`); `crypto.ts` Aufrufe entfernt
 
-1. **Header**: Pseudonym, Therapieansatz, Status, Buttons (Bearbeiten / Neue Session)
-2. **Tabs** (statt 2-Spalten-Layout):
-   - **Anamnese-Profil** (Default): rendert `AnamneseProfilePanel` mit den Karten-Blöcken:
-     - Kindheit · Eltern · Schule · Beruf · Sexualität & Partnerschaften
-     - Interessen & Hobbys · Ressourcen
-     - Aktuelle Lebenssituation (Wohnen / Arbeit / Beziehungen / Kinder / Eltern / Krankheiten)
-     - Symptomanamnese (akt. Symptomatik / Beginn & Auslöser / Traumatisierungen / Behandlungen / Medikation / Problemlöseversuche)
-     - Psychischer Befund · Persönlichkeitsstruktur · Vorläufige Diagnose
-     - Oben: Stammdaten-Mini-Block (Pseudonym, Alter, Geschlecht, Therapiebeginn, Diagnose-Tags, Ziele) — die alten Felder bleiben editierbar, sind aber jetzt Teil des Profils
-   - **Therapieverlauf**: `TherapieverlaufDashboard` mit `patientId={id}`
-   - **Sessions**: bisherige Liste
-   - **Slide-Decks**: bisherige Liste
+### 4. Einmal-Migration lokal → Cloud
+- Neuer Button in **Settings → „Lokale Daten in Cloud übernehmen"** (nur sichtbar wenn eingeloggt und lokale Daten existieren)
+- Liest alle Dexie-Records, entschlüsselt mit aktuellem lokalem Schlüssel, `upsert`t in die Cloud-Tabellen, markiert `localStorage.therapilot.migrated = true`
+- Beim ersten Aufruf nach Deploy automatisch ein Hinweis-Toast „Du hast X lokale Patienten — jetzt übernehmen?"
 
-## Auto-Fill aus Sessions 1–7
+### 5. Seiten-Anpassungen
+Alle `useLiveQuery(() => db.xxx…)` Aufrufe in
+`PatientsList`, `PatientDetail`, `PatientEdit`, `SessionsList`, `SessionEdit`, `SlidesList`, `SlideEditor`, `SlideNew`, `SlidePresent`, `TherapieverlaufDashboard`, `AnamneseProfilePanel`, `Dashboard`
+werden auf den neuen Cloud-Repo-Hook umgestellt. Bearbeiten-/Speichern-Buttons werden deaktiviert + Tooltip „Login erforderlich" wenn `user == null`.
 
-Im `AnamneseProfilePanel` (auf Patient-Ebene, ohne `currentSessionId`):
+## Technische Details
+- `id`-Felder bleiben Text-Pseudonyme — kein UUID-Wechsel, damit Slide-Deck-Referenzen, URLs und Curriculum-Mapping unverändert weiterlaufen
+- Realtime via `supabase.channel('public:patients').on('postgres_changes', …)`
+- Edge Functions (`ai-assist`) bleiben unverändert
+- Dexie-Code bleibt vorerst im Repo (nur für die Einmal-Migration), wird in Folge-Iteration entfernt
 
-- Großer Primär-Button **„Profil aus Sessions 1–7 automatisch aufbauen"**
-  - Lädt alle Sessions des Patienten, sortiert nach Datum, nimmt die ersten 7 mit Transkript
-  - Iteriert sequenziell: pro Session `ai-assist` Task `anamnese-extract` mit dem jeweils gemergten Profil als Input
-  - Zeigt Progress („Session 3/7 wird verarbeitet…")
-  - Speichert Endergebnis in `patient.anamneseProfile` + `anamneseUpdatedAt`
-- Sekundär-Button **„Nur fehlende Felder ergänzen"** (überschreibt vorhandene Texte nicht)
-- Pro Feld bleibt: manueller Edit + Quellen-Popover (Session-Nr. + Zitat) + Konfidenz-Badge
-- Hinweis-Banner wenn Patient >7 Sessions hat: „Anamnese-Phase abgeschlossen — weitere Sessions fließen optional ein"
-
-## Dateien
-
-**Geändert**
-- `src/pages/PatientDetail.tsx` — komplettes Re-Layout zu Tabs, Anamnese als Default-Ansicht
-- `src/components/anamnese/AnamneseProfilePanel.tsx` — Modus „Patient-Level" ergänzen: ohne `currentSessionId` kommt der Sammel-Auto-Fill-Button („1–7 aufbauen") statt des „aus dieser Session extrahieren"-Buttons; Progress-UI ergänzen
-- `src/pages/SessionEdit.tsx` — Tab „Anamnese" entfernen, durch dezenten Button „→ ins Anamnese-Profil einfließen" ersetzen (öffnet Patient-Profil oder triggert Extract direkt)
-
-**Unverändert**
-- `src/lib/anamneseTypes.ts`, `src/lib/db.ts`, `supabase/functions/ai-assist/index.ts` (Schema + AI-Task sind schon korrekt)
-- `TherapieverlaufDashboard` (wird nur an neuer Stelle eingebunden)
-
-## Was bleibt getrennt
-
-- **Anamnese-Profil** = statische, biografische Wahrheit über die Person (wird einmal in Sessions 1–7 aufgebaut, danach selten geändert)
-- **Therapieverlauf** = dynamische KPI-Kurven & Pattern Engine über alle Sessions hinweg (PHQ-Severity, CDI, BAI, Social, Functioning)
-- Beide leben jetzt nebeneinander als gleichwertige Tabs auf dem Patientenprofil.
+## Was NICHT in diesem Schritt passiert
+- Keine User-spezifischen Daten („mein Patient" vs. „dein Patient") — alle eingeloggten Nutzer teilen sich denselben Datenpool. Das passt zur Demo-Absicht.
+- Keine Rollen (Admin/Editor) — kann später nachgezogen werden
+- Keine erneute Verschlüsselung der Cloud-Daten
