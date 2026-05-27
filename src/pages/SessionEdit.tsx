@@ -144,18 +144,8 @@ export default function SessionEdit() {
             patientPseudonym={s.patientId}
           />
         </TabsContent>
-        <TabsContent value="anamnese" className="mt-4">
-          {s.patientId ? (
-            <AnamneseProfilePanel
-              patientId={s.patientId}
-              currentSessionId={s.id}
-              currentTranscript={s.transcript ?? s.rawNotes ?? ""}
-              patientPseudonym={s.patientId}
-            />
-          ) : (
-            <div className="text-sm text-muted-foreground">Bitte zuerst Patient:in wählen.</div>
-          )}
-        </TabsContent>
+
+
 
 
         <TabsContent value="slides" className="mt-4">
