@@ -98,6 +98,33 @@ export default function Settings() {
           </p>
         </CardContent></Card>
 
+        <Card className="border-primary/40"><CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-5 text-primary" />
+            <h3 className="text-lg">Demo-Workflow seeden</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Erzeugt einen vollständigen Test-Patienten <code className="text-xs">{DEMO_PATIENT_ID}</code> (F32.1, mittelgradige Depression)
+            mit 4 vollständigen Sitzungen inkl. Transkript, KV-Dokumentation, CBT-Schema-Extraktion und KPI-Verlauf.
+            Ideal, um den kompletten Workflow ohne AI-Calls durchzuklicken. Wenn du eingeloggt bist, ist die Demo via Link auch für andere sichtbar.
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={seedDemo} disabled={busy}>
+              <Sparkles className="size-4 mr-2" />
+              {busy ? "Lade…" : "Demo-Patient + 4 Sessions seeden"}
+            </Button>
+            <Button asChild variant="outline">
+              <Link to={`/patienten/${DEMO_PATIENT_ID}`}>Zum Demo-Patient</Link>
+            </Button>
+          </div>
+          {!isAuthed && (
+            <p className="text-xs text-muted-foreground">
+              Hinweis: Du bist nicht eingeloggt – die Demo wird nur lokal angelegt und nicht in die Cloud gepusht.
+            </p>
+          )}
+        </CardContent></Card>
+
+
         <Card><CardContent className="p-5 space-y-3">
           <div className="flex items-center gap-2">
             <CloudUpload className="size-5 text-primary" />
