@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { migrateLocalToCloud } from "@/lib/cloudSync";
 import { useAuth } from "@/lib/authState";
+import { seedDemoPatient, DEMO_PATIENT_ID, demoExists } from "@/lib/demoSeed";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle, ShieldCheck, CloudUpload, LogIn } from "lucide-react";
+import { Download, Upload, AlertTriangle, ShieldCheck, CloudUpload, LogIn, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
