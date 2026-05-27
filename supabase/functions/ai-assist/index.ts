@@ -959,6 +959,24 @@ Deno.serve(async (req: Request) => {
     }
 
 
+    // Spezial-Pfad: Anamnese-Extraktion (VT-Bögen 1–3)
+    if (task === "anamnese-extract") {
+      try {
+        const result = await runAnamneseExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
+                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        return new Response(JSON.stringify({ error: text }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
     const model = (task === "personalize-slides" || task === "generate-stage-slides") ? MODEL_SLIDES : MODEL;
 
