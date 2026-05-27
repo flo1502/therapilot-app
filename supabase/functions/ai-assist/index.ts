@@ -655,24 +655,77 @@ const KPI_TOOL = {
   type: "function",
   function: {
     name: "return_session_kpis",
-    description: "Extrahiert quantitative Depression-KPIs aus der Sitzung.",
+    description: "Extrahiert quantitative Depression-KPIs aus der Sitzung inkl. klinischer Sub-Signale.",
     parameters: {
       type: "object",
       properties: {
-        depressionSeverity: { type: "integer", minimum: 0, maximum: 100, description: "Depression Severity Index 0-100, basierend auf Selbstbeschreibung und Beobachtung. 0=keine Symptome, 100=schwerste Symptome." },
-        negativeBeliefsCount: { type: "integer", minimum: 0, description: "Anzahl distinkter negativer Grundannahmen / dysfunktionaler Kognitionen." },
-        adaptiveBeliefsCount: { type: "integer", minimum: 0, description: "Anzahl distinkter adaptiver / positiver Grundannahmen oder Reframings." },
-        positiveActivitiesCount: { type: "integer", minimum: 0, description: "Anzahl positiver Aktivitäten, die seit letzter Sitzung berichtet wurden." },
-        activeActivities: { type: "integer", minimum: 0, description: "Davon aktiv-belohnende Aktivitäten (Sport, Hobby, soziale Initiative)." },
-        passiveActivities: { type: "integer", minimum: 0, description: "Davon passiv-konsumierende Aktivitäten (TV, Scrollen)." },
-        socialContactsCount: { type: "integer", minimum: 0, description: "Anzahl sozialer Kontakte / Begegnungen im Zeitraum." },
-        socialInitiated: { type: "integer", minimum: 0, description: "Davon vom Patient:in selbst initiiert." },
-        socialPassive: { type: "integer", minimum: 0, description: "Davon passiv / von anderen initiiert." },
-        emotionAwareness: { type: "integer", minimum: 0, maximum: 5, description: "Fähigkeit Emotionen zu erkennen/benennen, 0-5." },
-        emotionRegulation: { type: "integer", minimum: 0, maximum: 5, description: "Fähigkeit Emotionen aktiv zu regulieren, 0-5." },
-        positiveSelfStatements: { type: "integer", minimum: 0, description: "Anzahl positiver Selbstaussagen (z.B. 'ich habe das geschafft')." },
-        negativeSelfStatements: { type: "integer", minimum: 0, description: "Anzahl negativer Selbstaussagen (z.B. 'ich bin nichts wert')." },
-        notes: { type: "string", description: "Kurze Begründung der Einschätzung, 1-2 Sätze." },
+        depressionSeverity: { type: "integer", minimum: 0, maximum: 100, description: "Globaler Eindruck 0-100. 0=keine Symptome, 100=schwerste." },
+        negativeBeliefsCount: { type: "integer", minimum: 0 },
+        adaptiveBeliefsCount: { type: "integer", minimum: 0 },
+        positiveActivitiesCount: { type: "integer", minimum: 0 },
+        activeActivities: { type: "integer", minimum: 0 },
+        passiveActivities: { type: "integer", minimum: 0 },
+        socialContactsCount: { type: "integer", minimum: 0 },
+        socialInitiated: { type: "integer", minimum: 0 },
+        socialPassive: { type: "integer", minimum: 0 },
+        emotionAwareness: { type: "integer", minimum: 0, maximum: 5 },
+        emotionRegulation: { type: "integer", minimum: 0, maximum: 5 },
+        positiveSelfStatements: { type: "integer", minimum: 0 },
+        negativeSelfStatements: { type: "integer", minimum: 0 },
+
+        // Klinische Sub-Signale 0-10
+        mood: { type: "integer", minimum: 0, maximum: 10, description: "Stimmung: 0=sehr niedergedrückt, 10=ausgeglichen/positiv." },
+        anhedonia: { type: "integer", minimum: 0, maximum: 10, description: "Freudverlust 0=keiner, 10=komplette Anhedonie." },
+        energy: { type: "integer", minimum: 0, maximum: 10, description: "Antrieb 0=erschöpft, 10=vital." },
+        cognition: { type: "integer", minimum: 0, maximum: 10, description: "Konzentration/Denken 0=blockiert, 10=klar." },
+        hopelessness: { type: "integer", minimum: 0, maximum: 10, description: "Hoffnungslosigkeit 0=keine, 10=total." },
+        selfDeprecation: { type: "integer", minimum: 0, maximum: 10, description: "Selbstabwertung 0=keine, 10=stark." },
+        guilt: { type: "integer", minimum: 0, maximum: 10, description: "Schuldgefühle 0=keine, 10=überwältigend." },
+        avoidanceCount: { type: "integer", minimum: 0, description: "Berichtete Vermeidungs-Episoden." },
+        functioningWork: { type: "integer", minimum: 0, maximum: 10, description: "Funktion Arbeit/Studium 0=nicht arbeitsfähig, 10=voll." },
+        functioningSocial: { type: "integer", minimum: 0, maximum: 10 },
+        functioningDaily: { type: "integer", minimum: 0, maximum: 10, description: "Alltag/Selbstversorgung." },
+        sleepDisturbance: { type: "integer", minimum: 0, maximum: 10, description: "Schlafstörung 0=keine, 10=massiv." },
+        psychomotor: { type: "integer", minimum: 0, maximum: 10, description: "Psychomotorische Verlangsamung/Agitation 0=keine, 10=ausgeprägt." },
+        somaticSymptoms: { type: "integer", minimum: 0, maximum: 10, description: "Somatische Beschwerden 0=keine, 10=stark." },
+
+        // Risiko
+        riskLevel: { type: "integer", minimum: 0, maximum: 3, description: "0=keine, 1=passive Ideation, 2=aktive Ideation, 3=Planung." },
+        riskNotes: { type: "string", description: "Kurze Begründung bei Risk>0, sonst leer." },
+
+        // SCID/CIDI proxy
+        scid: {
+          type: "object",
+          description: "Rekonstruierter Status nach DSM-5/ICD-10 Major Depressive Episode.",
+          properties: {
+            coreSymptoms: { type: "boolean", description: "Kernsymptome (Stimmung ODER Anhedonie) ≥2 Wochen." },
+            durationOver2Weeks: { type: "boolean" },
+            functionalImpairment: { type: "boolean" },
+            exclusionOtherDisorder: { type: ["boolean", "null"], description: "Andere Störung ausgeschlossen? null wenn unklar." },
+            confidence: { type: "string", enum: ["low", "medium", "high"] },
+            likelyDiagnosis: { type: "string", description: "z.B. 'Major Depressive Episode' oder 'Anpassungsstörung'." },
+          },
+          required: ["coreSymptoms", "durationOver2Weeks", "functionalImpairment", "confidence"],
+          additionalProperties: false,
+        },
+
+        // Drilldown
+        keyQuotes: {
+          type: "array",
+          maxItems: 5,
+          description: "Bis zu 5 wörtliche, prägnante Zitate aus dem Transkript.",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              tag: { type: "string", enum: ["belief", "emotion", "risk", "activity", "insight"] },
+            },
+            required: ["text", "tag"],
+            additionalProperties: false,
+          },
+        },
+
+        notes: { type: "string", description: "Kurze Begründung, 1-2 Sätze." },
       },
       required: [
         "depressionSeverity","negativeBeliefsCount","adaptiveBeliefsCount",
@@ -691,14 +744,20 @@ async function runKPIExtraction(apiKey: string, payload: any, pseudo?: string) {
   const system =
     "Du bist ein quantitativer Therapie-Analyst für Depression (F32/F33) in Deutschland. " +
     `Du arbeitest mit pseudonymisierten Sitzungs-Transkripten. Patient:in: '${pseudo ?? "[PATIENT:IN]"}'.\n\n` +
-    "AUFGABE: Extrahiere QUANTITATIVE KPIs aus einer einzelnen Sitzung zur Verlaufsbeobachtung.\n\n" +
+    "AUFGABE: Extrahiere QUANTITATIVE KPIs und klinische Sub-Signale aus einer einzelnen Sitzung.\n\n" +
     "STRENGE REGELN:\n" +
-    "1. Nur zählen, was im Transkript explizit genannt oder klar erkennbar ist.\n" +
-    "2. Im Zweifel niedriger schätzen / 0 zurückgeben. Keine Spekulation.\n" +
-    "3. depressionSeverity: Gesamt-Eindruck 0-100. Orientiere dich grob an PHQ-9-Logik (Schlaf, Antrieb, Anhedonie, Hoffnungslosigkeit, Suizidgedanken, Konzentration, Appetit, Selbstwert, Verlangsamung). NICHT diagnostisch, nur Verlaufs-Indikator.\n" +
-    "4. Beliefs: zähle DISTINKTE Aussagen, nicht Wiederholungen.\n" +
-    "5. emotionAwareness/Regulation 0-5: 0=nicht beobachtet, 1=nur Andeutung, 3=klar vorhanden, 5=souverän eingesetzt.\n" +
-    "6. notes: kurze Begründung, 1-2 Sätze, neutral.";
+    "1. Nur werten, was im Transkript explizit genannt oder klar erkennbar ist. Im Zweifel niedriger / 0.\n" +
+    "2. Sub-Signale (mood/anhedonia/energy/cognition/sleepDisturbance/psychomotor/somaticSymptoms/guilt/hopelessness/selfDeprecation): " +
+    "Skala 0-10. Wenn nicht erwähnt: weglassen (NICHT raten). Bei mood/energy/cognition: 10 = positiv/gesund, 0 = schlecht. " +
+    "Bei anhedonia/hopelessness/selfDeprecation/guilt/sleepDisturbance/psychomotor/somaticSymptoms: 10 = stark belastend, 0 = nicht vorhanden.\n" +
+    "3. functioningWork/Social/Daily: 10 = volle Funktion, 0 = nicht funktionsfähig. Nur setzen wenn berichtet.\n" +
+    "4. riskLevel: 0 default. Nur erhöhen bei klaren Hinweisen. 1=Lebensmüdigkeit ohne Plan, 2=aktive Suizidgedanken, 3=Plan/Vorbereitung. " +
+    "Bei riskLevel>0 immer riskNotes mit Original-Hinweis.\n" +
+    "5. scid: konservativ. confidence='high' nur wenn alle 4 Kriterien klar im Transkript belegt. Sonst 'medium' oder 'low'.\n" +
+    "6. keyQuotes: max. 5 WÖRTLICHE kurze Zitate (max. 20 Wörter), die zentrale beliefs/emotions/risks/insights belegen.\n" +
+    "7. Beliefs: zähle DISTINKTE Aussagen, keine Wiederholungen.\n" +
+    "8. depressionSeverity: Gesamteindruck 0-100, grob an PHQ-9-Logik. Verlaufs-Indikator, KEINE Diagnose.\n" +
+    "9. notes: 1-2 Sätze neutrale Begründung.";
 
   return await callGateway(apiKey, "google/gemini-2.5-pro", {
     messages: [
@@ -709,6 +768,7 @@ async function runKPIExtraction(apiKey: string, payload: any, pseudo?: string) {
     tool_choice: { type: "function", function: { name: "return_session_kpis" } },
   });
 }
+
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
