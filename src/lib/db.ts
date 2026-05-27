@@ -28,6 +28,10 @@ export interface Patient {
   vermeidungsVerhalten?: string[];
   ressourcen?: string[];
   lernstil?: "visuell" | "auditiv" | "kinästhetisch" | "lesen";
+
+  // Anamnese-Profil (additiv, aufgebaut aus Sessions 1–7)
+  anamneseProfile?: import("./anamneseTypes").AnamneseProfile;
+  anamneseUpdatedAt?: number;
 }
 
 export type SessionFormat = "SOAP" | "VT-Verlauf" | "Frei";
