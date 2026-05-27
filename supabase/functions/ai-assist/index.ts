@@ -453,22 +453,35 @@ const KV_COMPOSE_TOOL = {
 };
 
 async function callGateway(apiKey: string, model: string, body: any): Promise<any> {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, ...body }),
-  });
-  if (resp.status === 429) throw new Error("RATE_LIMIT");
-  if (resp.status === 402) throw new Error("PAYMENT_REQUIRED");
-  if (!resp.ok) {
-    const t = await resp.text();
-    console.error("AI-Gateway Fehler:", resp.status, t);
-    throw new Error("AI-Gateway Fehler");
+  const fallbacks = model !== "google/gemini-2.5-pro" ? [model, "google/gemini-2.5-pro"] : [model];
+  let lastStatus = 0;
+  let lastBody = "";
+  for (const m of fallbacks) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: m, ...body }),
+      });
+      if (resp.status === 429) throw new Error("RATE_LIMIT");
+      if (resp.status === 402) throw new Error("PAYMENT_REQUIRED");
+      if (resp.ok) {
+        const data = await resp.json();
+        const call = data.choices?.[0]?.message?.tool_calls?.[0];
+        if (!call?.function?.arguments) throw new Error("Keine strukturierte Antwort.");
+        return JSON.parse(call.function.arguments);
+      }
+      lastStatus = resp.status;
+      lastBody = await resp.text();
+      console.error(`AI-Gateway Fehler (model=${m}, attempt=${attempt + 1}):`, resp.status, lastBody);
+      if (resp.status >= 500 && resp.status < 600) {
+        await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+        continue;
+      }
+      break;
+    }
   }
-  const data = await resp.json();
-  const call = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!call?.function?.arguments) throw new Error("Keine strukturierte Antwort.");
-  return JSON.parse(call.function.arguments);
+  throw new Error(`AI-Gateway Fehler (${lastStatus})`);
 }
 
 async function runKVDocumentation(apiKey: string, payload: any, pseudo?: string) {
