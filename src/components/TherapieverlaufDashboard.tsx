@@ -24,6 +24,7 @@ import {
   PHQ_THRESHOLDS, BDI_THRESHOLDS, HAMD_THRESHOLDS,
   generateAlerts, generateClinicalSummary, InsightAlert,
 } from "@/lib/kpiTypes";
+import { PatternEnginePanel } from "@/components/kpi/PatternEnginePanel";
 
 interface Props {
   patientId: string;
