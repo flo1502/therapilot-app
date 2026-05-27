@@ -172,6 +172,13 @@ class TheraPilotDB extends Dexie {
       decks: "id, patientId, updatedAt",
       settings: "key",
     });
+    // v6: additive – anamneseProfile am Patient, keine neuen Indizes.
+    this.version(6).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
   }
 }
 
