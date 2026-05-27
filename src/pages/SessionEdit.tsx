@@ -96,6 +96,7 @@ export default function SessionEdit() {
           <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
           <TabsTrigger value="schemas">CBT-Schemata</TabsTrigger>
           <TabsTrigger value="verlauf">Therapieverlauf</TabsTrigger>
+          <TabsTrigger value="anamnese">Anamnese</TabsTrigger>
           <TabsTrigger value="slides">Folien</TabsTrigger>
         </TabsList>
 
