@@ -417,6 +417,11 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
                 }} />
             ))}
           </TabsContent>
+
+          {/* ============ PATTERN ENGINE ============ */}
+          <TabsContent value="patterns" className="mt-4">
+            <PatternEnginePanel points={withKPIs.map(r => ({ nr: r.nr, kpis: r.kpis! }))} />
+          </TabsContent>
         </Tabs>
       )}
 
