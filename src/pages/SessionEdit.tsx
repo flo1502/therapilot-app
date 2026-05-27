@@ -14,7 +14,7 @@ import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
 import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
 import { SchemaChatFeed } from "@/components/SchemaChatFeed";
 import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
-import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FORMATS: SessionFormat[] = ["VT-Verlauf", "Frei"];
