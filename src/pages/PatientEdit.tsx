@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { db, nextPatientPseudonym, Patient, TherapyApproach } from "@/lib/db";
-import { encryptString, safeDecrypt } from "@/lib/crypto";
+import { safeDecrypt } from "@/lib/crypto";
+import { ensureAuthed } from "@/lib/authGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,8 +40,9 @@ export default function PatientEdit() {
         const ex = await db.patients.get(id!);
         if (!ex) { toast.error("Nicht gefunden."); nav("/patienten"); return; }
         setP(ex);
-        setName(await safeDecrypt(ex.encName));
-        setNotes(await safeDecrypt(ex.encNotes));
+        // Plaintext bevorzugen; sonst legacy entschlüsseln (für alte lokale Records)
+        setName(ex.name ?? await safeDecrypt(ex.encName));
+        setNotes(ex.notes ?? await safeDecrypt(ex.encNotes));
       }
     })();
   }, [id, isNew, nav]);
@@ -48,12 +50,16 @@ export default function PatientEdit() {
   if (!p) return <div className="text-sm text-muted-foreground">Lade…</div>;
 
   const save = async () => {
+    if (!(await ensureAuthed())) return;
     try {
       const updated: Patient = {
         ...p,
         updatedAt: Date.now(),
-        encName: name ? await encryptString(name) : undefined,
-        encNotes: notes ? await encryptString(notes) : undefined,
+        name: name || undefined,
+        notes: notes || undefined,
+        // legacy enc-Felder leeren, falls vorhanden
+        encName: undefined,
+        encNotes: undefined,
       };
       await db.patients.put(updated);
       toast.success("Gespeichert.");
@@ -64,6 +70,7 @@ export default function PatientEdit() {
   };
 
   const del = async () => {
+    if (!(await ensureAuthed())) return;
     if (!confirm("Patient:in und alle Sessions wirklich löschen?")) return;
     await db.sessions.where("patientId").equals(p.id).delete();
     await db.patients.delete(p.id);
@@ -90,8 +97,8 @@ export default function PatientEdit() {
 
       <Card><CardContent className="p-6 grid md:grid-cols-2 gap-5">
         <div className="md:col-span-2">
-          <Label>Klarname (verschlüsselt, nur lokal sichtbar)</Label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="optional, AES-GCM verschlüsselt" />
+          <Label>Klarname (in Cloud sichtbar – nur Demo-Daten!)</Label>
+          <Input value={name} onChange={e => setName(e.target.value)} placeholder="optional" />
         </div>
         <div>
           <Label>Therapieansatz</Label>
@@ -202,7 +209,7 @@ export default function PatientEdit() {
         </div>
 
         <div className="md:col-span-2">
-          <Label>Freie Notizen (verschlüsselt)</Label>
+          <Label>Freie Notizen (in Cloud sichtbar)</Label>
           <Textarea rows={5} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Biografie, Hintergrund, individuelle Hinweise…" />
         </div>
         <div className="md:col-span-2 flex items-center gap-3">

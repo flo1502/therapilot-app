@@ -7,9 +7,12 @@ export interface Patient {
   id: string;                // pseudonym, e.g. P-2024-007
   createdAt: number;
   updatedAt: number;
-  // Encrypted fields (base64) — only readable with master password
-  encName?: string;          // Klarname (verschlüsselt)
-  encNotes?: string;         // freie Notizen (verschlüsselt)
+  // Encrypted fields (legacy, vor Cloud-Sync) — bleiben für Abwärtskompatibilität.
+  encName?: string;
+  encNotes?: string;
+  // Plaintext (für geteilten Cloud-Modus). Werden beim Speichern in PatientEdit verwendet.
+  name?: string;
+  notes?: string;
   // Plaintext (pseudonymisiert, nicht-identifizierend)
   ageGroup?: string;         // z.B. "30-40"
   gender?: string;
