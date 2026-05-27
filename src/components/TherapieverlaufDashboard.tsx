@@ -28,8 +28,8 @@ import { PatternEnginePanel } from "@/components/kpi/PatternEnginePanel";
 
 interface Props {
   patientId: string;
-  currentSessionId: string;
-  currentTranscript: string;
+  currentSessionId?: string;
+  currentTranscript?: string;
   patientPseudonym?: string;
 }
 
