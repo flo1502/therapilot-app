@@ -1,54 +1,51 @@
-
-# Patientendaten in der Cloud teilen (öffentlich lesbar, Login zum Bearbeiten)
+# Plan: Demo-Workflow „Mittelgradige Depression (F32.1)" seeden
 
 ## Ziel
-Jeder, der den Link öffnet, sieht dieselben Patienten, Sessions und Slide-Decks und kann den kompletten Workflow durchklicken. Bearbeiten/Anlegen/Löschen geht nur eingeloggt. Deine aktuell lokal gespeicherten Daten werden einmalig in die Cloud hochgeladen.
+Ein Klick erzeugt einen vollständigen Testpatienten plus 4 Sitzungen mit allen Analyse-Artefakten (Transkript, KV-Doku, CBT-Extraktion, KPIs). Damit ist der komplette Workflow ohne AI-Calls (Guthaben aufgebraucht) im Preview sicht- und klickbar – Patientenliste → Detail → Sessions → Therapieverlauf → Dashboard.
 
-## Wichtiger Hinweis zur Verschlüsselung
-Der bisherige lokale Krypto-Layer (Master-Passwort, AES-GCM im Browser) funktioniert nicht mehr, sobald Daten geteilt werden — andere Browser haben den Schlüssel nicht. Für „jeder mit Link sieht alles" werden Klarnamen/Notizen in der Cloud im Klartext liegen. **Bitte nur mit Demo-/Fake-Patientendaten benutzen, keine echten Patienten.**
+## Warum so
+- Die AI-Pipeline (ai-assist) ist aktuell blockiert (402, AI-Guthaben). Demo-Daten müssen daher **statisch vorgefertigt** sein, nicht zur Laufzeit generiert.
+- Alle relevanten Datentypen (`Patient`, `SessionEntry`, `KVDocumentation`, `SchemaAnalysisResult`, `SessionKPIs`, `AnamneseProfile`) sind in `src/lib/*Types.ts` bereits definiert – wir füllen sie nur korrekt.
+- Schreibwege gehen über Dexie; `cloudSync` pusht automatisch zu Supabase (wenn eingeloggt). Damit ist die Demo später auch für andere Besucher via Link sichtbar.
 
-## Was gebaut wird
+## Umfang
 
-### 1. Cloud-Schema (Lovable Cloud)
-Drei Tabellen, die die bisherigen Dexie-Tabellen 1:1 spiegeln:
-- `patients` — alle Felder aus `Patient` (id als TEXT Primary Key = Pseudonym wie `P-2026-001`, plus `name`, `notes`, `anamnese_profile jsonb`, `curriculum_*` Felder usw.)
-- `sessions` — alle Felder aus `SessionEntry` inkl. `kv_documentation`, `schema_analysis`, `session_kpis`, `transcript` als jsonb/text
-- `decks` — Slide-Decks mit `slides jsonb`
+### 1. Neue Datei `src/lib/demoSeed.ts`
+Enthält die komplette statische Demo:
+- **1 Patient** „P-2026-001" – 34 J., Lehrerin, alleinlebend, F32.1, Hauptsymptome (Antriebslosigkeit, Schlafstörung, Grübeln, Anhedonie), dysfunktionale Grundannahmen („Ich bin nicht gut genug", „Niemand braucht mich"), Therapieziele, `anamneseProfile` (gefüllt für Sessions 1–4 sichtbar).
+- **4 SessionEntries** (Datum: vor 4, 3, 2, 1 Wochen), je ~50 min, mit:
+  - **`transcript`**: realistischer deutscher Fließtext-Dialog (Therapeutin / Patientin), ca. 600–900 Wörter pro Session, glaubwürdiger langsamer Verlauf.
+  - **`rawNotes`** + **`structured`** (VT-Verlauf): kurze Therapeut:innen-Notiz.
+  - **`kvDocumentation`**: 6-Punkte-Struktur (Aktuelle Symptomatik / Inhalte / Interventionen / Verlauf & Einschätzung / Vereinbarungen / Risikoabklärung), KV-neutral.
+  - **`kvExtraction`** + **`kvValidation`** (score ~90, leere errors).
+  - **`schemaAnalysis`**: negative core beliefs, adaptive beliefs, cognitive distortions, Verhalten (Aktivierung/Vermeidung), Emotionsregulation, Risiko – Verlauf zeigt: negative ↓, adaptive ↑, Aktivierung ↑, Risiko stabil niedrig.
+  - **`sessionKPIs`**: PHQ-9-Proxy 18→16→13→11, BDI-II 27→24→20→17, HAM-D 21→19→16→14, Cognitive Shift, Behavioral Activation, Social Engagement, Emotion Regulation, Functioning steigend; Risk 1→1→0→0.
+  - **`homework`** und **`nextFocus`** pro Sitzung.
 
-Zugriff:
-- **SELECT**: `USING (true)` für `anon` + `authenticated` → jeder sieht alles
-- **INSERT/UPDATE/DELETE**: nur `authenticated`
-- GRANTs entsprechend gesetzt
+Alle Strings deutsch, KV-konform, sachlich, ohne Dramatisierung, keine Diagnoseänderung.
 
-### 2. Auth
-- Email+Passwort Login (Standard), Google Sign-In
-- Neue Seite `/login` mit Sign-up + Sign-in
-- `AppShell` zeigt oben rechts „Login" / „Logout" + aktuellen User
-- `LockScreen` (Master-Passwort) entfällt — wird durch normalen Auth-Flow ersetzt
+### 2. UI-Trigger in `src/pages/Settings.tsx`
+Neuer Abschnitt **„Demo-Workflow"** mit Button **„Demo-Patient + 4 Sessions seeden"**:
+- prüft, ob `P-2026-001` schon existiert → wenn ja: Toast „bereits vorhanden" + Option „überschreiben".
+- ruft `seedDemoPatient()` aus `demoSeed.ts` → `db.patients.put(...)` + `db.sessions.bulkPut(...)`.
+- cloudSync-Hook pusht automatisch zu Supabase, sodass Demo auch für nicht eingeloggte Besucher des Links sichtbar ist (vorausgesetzt User ist beim Seeden eingeloggt – RLS-Insert ist auth-only).
+- Toast „Demo geladen → Patientenliste öffnen" mit Link zu `/patienten/P-2026-001`.
 
-### 3. Data-Layer-Umbau (`src/lib/db.ts` → `src/lib/cloudDb.ts`)
-- Neuer Cloud-Repo-Layer mit denselben Funktionen wie heute Dexie (`getPatient`, `listPatients`, `upsertPatient`, `listSessions`, …)
-- `useLiveQuery(dexie)` wird durch React-Query + Supabase-Realtime ersetzt, damit Updates live durchschlagen
-- Schreib-Funktionen prüfen `supabase.auth.getUser()` und werfen `"Bitte einloggen"` wenn nicht authentifiziert; UI versteckt Bearbeiten-Buttons in dem Fall
-- Krypto-Felder (`encName`, `encNotes`) werden zu normalen Text-Spalten (`name`, `notes`); `crypto.ts` Aufrufe entfernt
+### 3. Keine weiteren Änderungen
+- Keine neuen Tabellen, keine Migration, keine RLS-Änderung.
+- Keine Edge-Function-Calls, kein AI-Verbrauch.
+- Bestehende Detail-, Verlauf- und Dashboard-Seiten rendern die Daten automatisch (sie lesen schon aus Dexie).
 
-### 4. Einmal-Migration lokal → Cloud
-- Neuer Button in **Settings → „Lokale Daten in Cloud übernehmen"** (nur sichtbar wenn eingeloggt und lokale Daten existieren)
-- Liest alle Dexie-Records, entschlüsselt mit aktuellem lokalem Schlüssel, `upsert`t in die Cloud-Tabellen, markiert `localStorage.therapilot.migrated = true`
-- Beim ersten Aufruf nach Deploy automatisch ein Hinweis-Toast „Du hast X lokale Patienten — jetzt übernehmen?"
+## Out of Scope (bewusst)
+- Echte Audio-Dateien: nur Transkript-Text (Audio-Upload ist Live-Feature, nicht Teil der Demo-Seed).
+- Slide-Decks: nicht Teil der Anforderung.
+- KPI-Score-Berechnung zur Laufzeit – Werte sind fix vorbelegt, damit Verlauf reproduzierbar bleibt.
 
-### 5. Seiten-Anpassungen
-Alle `useLiveQuery(() => db.xxx…)` Aufrufe in
-`PatientsList`, `PatientDetail`, `PatientEdit`, `SessionsList`, `SessionEdit`, `SlidesList`, `SlideEditor`, `SlideNew`, `SlidePresent`, `TherapieverlaufDashboard`, `AnamneseProfilePanel`, `Dashboard`
-werden auf den neuen Cloud-Repo-Hook umgestellt. Bearbeiten-/Speichern-Buttons werden deaktiviert + Tooltip „Login erforderlich" wenn `user == null`.
-
-## Technische Details
-- `id`-Felder bleiben Text-Pseudonyme — kein UUID-Wechsel, damit Slide-Deck-Referenzen, URLs und Curriculum-Mapping unverändert weiterlaufen
-- Realtime via `supabase.channel('public:patients').on('postgres_changes', …)`
-- Edge Functions (`ai-assist`) bleiben unverändert
-- Dexie-Code bleibt vorerst im Repo (nur für die Einmal-Migration), wird in Folge-Iteration entfernt
-
-## Was NICHT in diesem Schritt passiert
-- Keine User-spezifischen Daten („mein Patient" vs. „dein Patient") — alle eingeloggten Nutzer teilen sich denselben Datenpool. Das passt zur Demo-Absicht.
-- Keine Rollen (Admin/Editor) — kann später nachgezogen werden
-- Keine erneute Verschlüsselung der Cloud-Daten
+## Ergebnis für den Nutzer
+Nach Klick auf den Seed-Button:
+- `/patienten` zeigt „P-2026-001"
+- Detailseite zeigt 4 Sessions
+- Jede Session-Detailseite zeigt KV-Doku, CBT-Extraktion, KPIs
+- Therapieverlauf-Dashboard zeigt 7 KPI-Trendlinien Session 1→4
+- Insights-Liste zeigt die geforderten Therapist Insights
+- Über den geteilten Preview-Link sehen Mitlesende denselben Workflow (öffentlich lesbar).
