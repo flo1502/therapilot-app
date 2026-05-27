@@ -163,10 +163,12 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
               {rows.length} Session{rows.length === 1 ? "" : "s"} · {withKPIs.length} mit KPIs · F32/F33
             </div>
           </div>
-          <Button onClick={extractCurrent} disabled={busy} size="sm">
-            {hasCurrentKPIs ? <RefreshCw className="size-4 mr-2" /> : <Sparkles className="size-4 mr-2" />}
-            {busy ? "Analysiere…" : hasCurrentKPIs ? "KPIs neu extrahieren" : "KPIs für diese Session extrahieren"}
-          </Button>
+          {currentSessionId && (
+            <Button onClick={extractCurrent} disabled={busy} size="sm">
+              {hasCurrentKPIs ? <RefreshCw className="size-4 mr-2" /> : <Sparkles className="size-4 mr-2" />}
+              {busy ? "Analysiere…" : hasCurrentKPIs ? "KPIs neu extrahieren" : "KPIs für diese Session extrahieren"}
+            </Button>
+          )}
         </CardContent>
       </Card>
 
