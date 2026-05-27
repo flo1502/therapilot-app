@@ -28,6 +28,10 @@ export interface Patient {
   vermeidungsVerhalten?: string[];
   ressourcen?: string[];
   lernstil?: "visuell" | "auditiv" | "kinästhetisch" | "lesen";
+
+  // Anamnese-Profil (additiv, aufgebaut aus Sessions 1–7)
+  anamneseProfile?: import("./anamneseTypes").AnamneseProfile;
+  anamneseUpdatedAt?: number;
 }
 
 export type SessionFormat = "SOAP" | "VT-Verlauf" | "Frei";
@@ -163,6 +167,13 @@ class TheraPilotDB extends Dexie {
     });
     // v5: additive – sessionKPIs für Depression-Dashboard, keine neuen Indizes.
     this.version(5).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v6: additive – anamneseProfile am Patient, keine neuen Indizes.
+    this.version(6).stores({
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",

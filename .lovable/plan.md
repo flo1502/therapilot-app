@@ -1,59 +1,99 @@
-# Pattern Engine Tab – Cross-Session KPIs
 
-Neuer Tab **"Pattern Engine"** im bestehenden `TherapieverlaufDashboard`, eingefügt nach den vorhandenen Tabs (Overview / Master KPIs / Diagnostik / Timeline / Cross-Scale / Alerts → **+ Pattern Engine**).
+# Anamnese-Automatisierung (Sessions 1–7 → Patient:innen-Profil)
 
-Der Tab realisiert **Layer 3** deines Systems: Cross-Session Pattern Detection + die 5 Verlaufskurven.
+Neuer KI-gestützter Anamnese-Baustein: Aus den Transkripten der ersten bis zu 7 Sessions wird ein strukturiertes **Anamnese-Profil** erstellt, das exakt der Papierstruktur (Bögen 1–3) folgt. Pro neuer Session werden neue Informationen ergänzt / vorhandene Felder verfeinert (Merge, kein Überschreiben).
 
-## 1. Inhalt des neuen Tabs
+## 1. Datenstruktur (`src/lib/anamneseTypes.ts`, neu)
 
-### A) 5 Verlaufskurven (gestapelt, je ein Mini-LineChart)
-1. **Severity Curve** (PHQ-like) → nutzt `computePHQ9` (bereits vorhanden)
-2. **Cognitive Distortion Curve** → `computeCDI`
-3. **Behavioral Activation Curve** → `computeBAI`
-4. **Social Engagement Curve** → `socialContactsCount + socialInitiated`-gewichtet (neu: `computeSocialEngagement`)
-5. **Functioning Curve** → `computeFunctioning`
+TypeScript-Schema, das 1:1 die Bögen abbildet:
 
-Jede Kurve mit Trend-Pfeil (↑/↓/→) und Delta-Badge (erste vs. letzte Session).
+```text
+AnamneseProfile {
+  kindheit { selbstbeschreibung, gesundheitszustand, problemeStoerungen,
+             verluste, traumatisierungen, besondereSituationen }
+  eltern   { alter, beruf, persoenlichkeit, erziehungsstil,
+             beziehungKommunikation, atmosphaere, geschwister }
+  schule   { abschluesse, beziehungMitschuelerLehrer }
+  beruf    { ausbildungen, beziehungVorgesetzteKollegen }
+  sexualitaetPartnerschaften
+  interessenHobbys
+  ressourcen
+  aktuelleLebenssituation { wohnen, arbeit, beziehungen, kinder, eltern, krankheiten }
+  symptomanamnese { aktuelleSymptomatik, beginnAusloeser, traumatisierungen,
+                    behandlungen, medikation, problemloeseversuche }
+  psychischerBefund { interaktionsverhalten, auftreten, wirkung, denkmuster }
+  persoenlichkeitsstruktur
+  bewertungVorlaeufigeDiagnose
+}
+```
 
-### B) Detected Patterns Liste
-Karten-Liste mit erkannten Mustern über alle Sessions:
+Jedes Feld: `{ text: string; confidence: 0–1; sources: { sessionId, nr, quote }[] }` — damit jede Aussage rückverfolgbar bleibt.
 
-- **Belief Persistence** — wenn `negativeBeliefsCount ≥ 3` in den letzten 3 Sessions stabil bleibt → "Core Schema aktiv"
-- **Avoidance Trend** — Trend von `avoidanceCount` (↑ = warning, ↓ = positive)
-- **Cognitive Shift Pattern** — `adaptiveBeliefs ↑` UND `negativeBeliefs ↓` über 3+ Sessions
-- **Activation Recovery** — `BAI` über 3 Sessions monoton steigend
-- **Risk Fluctuation** — wenn max(riskLevel) − min(riskLevel) ≥ 2 oder Spike erkannt
+## 2. AI-Task (`supabase/functions/ai-assist/index.ts`)
 
-Jedes Pattern als Card mit Icon, Titel, Beschreibung, betroffenem Session-Range, Severity-Farbe.
+Neuer Task **`anamnese-extract`**:
+- Input: aktuelles `AnamneseProfile` + neues Session-Transkript (+ Sitzungs-Nr.)
+- System-Prompt (DE, A1-A2, pseudonymisiert): siehe Abschnitt 5
+- Tool-Calling-Schema = `AnamneseProfile` (structured output)
+- Output: gemergtes Profil; pro Feld nur ergänzen wenn neue Evidenz, Quote + sessionId anhängen
 
-### C) Per-Session KPI Tabelle (Drilldown)
-Kompakte Tabelle mit allen Sessions als Zeilen und Spalten: Severity, CDI, Belief Load, Cognitive Shift, BAI, Social, Emotion Reg, Functioning, Risk.
+## 3. Speicherung (Dexie, `src/lib/db.ts`)
 
-## 2. Technische Umsetzung
+- Neues Feld `Patient.anamneseProfile?: AnamneseProfile`
+- Neues Feld `Patient.anamneseLastUpdatedAt?: number`
+- Keine Migration nötig (Dexie additiv).
 
-**`src/lib/kpiTypes.ts`** – ergänzen (rein additiv, keine Datenmodell-Änderung):
-- `computeSocialEngagement(k)` → 0–100 aus `socialInitiated` + `socialContactsCount`
-- `computeBeliefLoad(k)` → `negativeBeliefsCount`
-- `computeCognitiveShift(k)` → `adaptiveBeliefsCount − negativeBeliefsCount` (bereits als `cognitiveShiftIndex` vorhanden – wiederverwenden)
-- `detectPatterns(points: SessionPoint[]): DetectedPattern[]` mit `{ id, type, severity, title, detail, sessionRange }`
+## 4. UI
 
-**`src/components/kpi/PatternEnginePanel.tsx`** (neu):
-- nimmt `points: { nr, kpis }[]` entgegen
-- rendert die 3 Sektionen (Curves / Patterns / Table)
-- nutzt vorhandene `recharts` + shadcn `Card`/`Table`/`Badge`
+**a) Neuer Tab im `SessionEdit`** („Anamnese") nach „Therapieverlauf":
+- Button **„Anamnese aus dieser Session extrahieren"** → ruft `anamnese-extract` mit aktuellem Transcript, merged ins Patient-Profil
+- Hinweis-Badge wenn Sitzungs-Nr. > 7 („Anamnese-Phase abgeschlossen — Updates optional")
 
-**`src/components/TherapieverlaufDashboard.tsx`** (geändert):
-- neuen `TabsTrigger` "Pattern Engine" nach "Alerts" hinzufügen
-- neuen `TabsContent` mit `<PatternEnginePanel points={points} />`
-- `TabsList` ggf. auf `grid-cols-7` oder horizontal scrollbar anpassen
+**b) Neue Komponente `AnamneseProfilePanel.tsx`**:
+- Rendert das vollständige Profil in den 5 Karten-Blöcken der Vorlage (Kindheit / Eltern / Schule / Beruf / Sexualität — dann Interessen / Ressourcen / Lebenssituation / Symptomanamnese / Psych. Befund / Persönlichkeit / Diagnose)
+- Jedes Feld editierbar (Textarea) + Quellen-Popover (Session-Nr. + Zitat)
+- Sammel-Button **„Aus allen Sessions 1–7 neu aufbauen"** (iteriert sequenziell)
+- Export-Button **„PDF / Markdown exportieren"**
 
-## 3. Keine Änderungen an
+**c) Einbindung in `PatientDetail`**: neuer Tab/Card „Anamnese-Profil" mit `AnamneseProfilePanel`.
 
-- AI-Extraktion (`ai-assist/index.ts`) – alle nötigen Felder werden bereits extrahiert
-- Datenmodell / Dexie
-- Bestehende Tabs
+## 5. System-Prompt (Kern)
 
-## Dateien
+Wird in `ai-assist` als Konstante hinterlegt, gekürzt hier:
 
-**Neu:** `src/components/kpi/PatternEnginePanel.tsx`
-**Geändert:** `src/lib/kpiTypes.ts`, `src/components/TherapieverlaufDashboard.tsx`
+```
+Du bist klinischer Anamnese-Assistent für ambulante Psychotherapie (DE).
+Aufgabe: Extrahiere aus dem Sitzungs-Transkript NUR Fakten, die in die
+folgende Anamnese-Struktur passen (Bögen 1–3 nach VT-Standard):
+
+[vollständige Feldliste aus Abschnitt 1]
+
+REGELN:
+- Nichts erfinden. Keine Diagnosen stellen — nur was Patient:in/Therapeut sagt.
+- Pro Feld: prägnante Zusammenfassung (max. 3 Sätze, A2-Sprache, sachlich).
+- Jede Aussage MUSS mit wörtlichem Zitat + Session-Nr. belegt werden.
+- Bestehendes Profil NICHT überschreiben — nur ergänzen / präzisieren.
+- Bei Widerspruch: beide Versionen festhalten + Konflikt markieren.
+- Pseudonymisiert bleiben (keine Klarnamen).
+- Output: tool-call `update_anamnese` mit dem vollständigen, gemergten Profil.
+```
+
+## 6. Dateien
+
+**Neu**
+- `src/lib/anamneseTypes.ts`
+- `src/components/anamnese/AnamneseProfilePanel.tsx`
+- `src/components/anamnese/AnamneseFieldCard.tsx`
+
+**Geändert**
+- `supabase/functions/ai-assist/index.ts` (Task `anamnese-extract` + Tool-Schema + Prompt)
+- `src/lib/ai/provider.ts` (`AiTask` Union erweitern)
+- `src/lib/db.ts` (`Patient.anamneseProfile`)
+- `src/pages/SessionEdit.tsx` (neuer Tab „Anamnese")
+- `src/pages/PatientDetail.tsx` (Profil-Anzeige + „Neu aufbauen"-Button)
+
+## 7. Keine Änderungen an
+
+- Bestehende KV-/CBT-/Therapieverlauf-Logik
+- Datenbank-Schema in Supabase (alles client-side via Dexie)
+- Audio-/Transkriptions-Pipeline (Transcript ist bereits in `SessionEntry.transcript`)

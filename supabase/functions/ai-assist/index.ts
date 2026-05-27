@@ -770,6 +770,122 @@ async function runKPIExtraction(apiKey: string, payload: any, pseudo?: string) {
 }
 
 
+// ============== Anamnese-Extraktion (VT-Bögen 1–3) ==============
+
+const ANAMNESE_FIELD_PATHS = [
+  "kindheit.selbstbeschreibung","kindheit.gesundheitszustand","kindheit.problemeStoerungen",
+  "kindheit.verluste","kindheit.traumatisierungen","kindheit.besondereSituationen",
+  "eltern.alter","eltern.beruf","eltern.persoenlichkeit","eltern.erziehungsstil",
+  "eltern.beziehungKommunikation","eltern.atmosphaere","eltern.geschwister",
+  "schule.abschluesse","schule.beziehungMitschuelerLehrer",
+  "beruf.ausbildungen","beruf.beziehungVorgesetzteKollegen",
+  "sexualitaetPartnerschaften",
+  "interessenHobbys","ressourcen",
+  "aktuelleLebenssituation.wohnen","aktuelleLebenssituation.arbeit","aktuelleLebenssituation.beziehungen",
+  "aktuelleLebenssituation.kinder","aktuelleLebenssituation.eltern","aktuelleLebenssituation.krankheiten",
+  "symptomanamnese.aktuelleSymptomatik","symptomanamnese.beginnAusloeser",
+  "symptomanamnese.traumatisierungen","symptomanamnese.behandlungen",
+  "symptomanamnese.medikation","symptomanamnese.problemloeseversuche",
+  "psychischerBefund.interaktionsverhalten","psychischerBefund.auftreten",
+  "psychischerBefund.wirkung","psychischerBefund.denkmuster",
+  "persoenlichkeitsstruktur","bewertungVorlaeufigeDiagnose",
+];
+
+const ANAMNESE_FIELD_SCHEMA = {
+  type: "object",
+  properties: {
+    text: { type: "string", description: "Prägnante Zusammenfassung in 1-3 Sätzen, A2-Sprache, sachlich. Leer wenn keine neuen Infos." },
+    confidence: { type: "number", minimum: 0, maximum: 1 },
+    sources: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          sessionId: { type: "string" },
+          sessionNr: { type: "number" },
+          quote: { type: "string", description: "Wörtliches Kurzzitat aus dem Transkript, max. 30 Wörter." },
+        },
+        required: ["sessionId", "quote"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["text"],
+  additionalProperties: false,
+};
+
+function buildAnamneseToolParameters() {
+  // Erzeuge verschachteltes Schema aus den Pfaden
+  const root: any = { type: "object", properties: {}, additionalProperties: false };
+  for (const path of ANAMNESE_FIELD_PATHS) {
+    const parts = path.split(".");
+    let cur = root;
+    for (let i = 0; i < parts.length; i++) {
+      const key = parts[i];
+      if (i === parts.length - 1) {
+        cur.properties[key] = ANAMNESE_FIELD_SCHEMA;
+      } else {
+        if (!cur.properties[key]) {
+          cur.properties[key] = { type: "object", properties: {}, additionalProperties: false };
+        }
+        cur = cur.properties[key];
+      }
+    }
+  }
+  return root;
+}
+
+const ANAMNESE_TOOL = {
+  type: "function",
+  function: {
+    name: "return_anamnese",
+    description: "Liefert das gemergte Anamnese-Profil nach VT-Bögen 1–3.",
+    parameters: buildAnamneseToolParameters(),
+  },
+};
+
+async function runAnamneseExtraction(apiKey: string, payload: any, pseudo?: string) {
+  const transcript: string = payload?.transcript ?? "";
+  const sessionId: string = payload?.sessionId ?? "unknown";
+  const sessionNr: number | undefined = payload?.sessionNr;
+  const currentProfile = payload?.currentProfile ?? null;
+  if (!transcript.trim()) throw new Error("Transkript fehlt");
+
+  const system =
+    "Du bist klinischer Anamnese-Assistent für ambulante Psychotherapie in Deutschland (VT-Standard).\n" +
+    `Patient:in (pseudonymisiert): '${pseudo ?? "[PATIENT:IN]"}'.\n\n` +
+    "AUFGABE: Extrahiere aus dem Sitzungs-Transkript NUR Fakten, die in die VT-Anamnese-Struktur (Bögen 1–3) passen, " +
+    "und liefere ein MERGED Anamnese-Profil (bestehendes Profil + neue Infos aus dieser Session).\n\n" +
+    "STRENGE REGELN:\n" +
+    "1. Nichts erfinden. Nur was Patient:in oder Therapeut:in im Transkript explizit sagt.\n" +
+    "2. KEINE Diagnosen stellen. Im Feld 'bewertungVorlaeufigeDiagnose' nur Hypothesen wiedergeben, die explizit genannt wurden.\n" +
+    "3. Pro Feld: prägnante Zusammenfassung, max. 3 Sätze, sachliche A2-Sprache.\n" +
+    "4. Jede neue Aussage MUSS mit mindestens einem WÖRTLICHEN Kurzzitat aus dem Transkript belegt werden (sources[].quote, max. 30 Wörter).\n" +
+    "5. Bestehende Felder NICHT überschreiben, wenn keine neuen Infos da sind → 'text' leer lassen.\n" +
+    "6. Bei Widerspruch zu bestehender Info: neue Info ergänzen, alte Info im Text erwähnen (\"zuvor: …; jetzt: …\").\n" +
+    "7. Pseudonyme beibehalten, keine Klarnamen.\n" +
+    `8. sessionId IMMER auf '${sessionId}' setzen, sessionNr auf ${sessionNr ?? "null"}.\n` +
+    "9. confidence 0-1: 0.9+ nur bei expliziter, eindeutiger Aussage; 0.5-0.7 bei Andeutungen; <0.5 nicht ausgeben.\n" +
+    "10. Felder, zu denen NICHTS gesagt wurde, gar nicht im Output erscheinen lassen (Tool akzeptiert teilweise Objekte).\n\n" +
+    "OUTPUT: tool-call 'return_anamnese' – nur Felder mit NEUEN Inhalten aus diesem Transkript.";
+
+  const userContent =
+    `BESTEHENDES ANAMNESE-PROFIL (zur Orientierung, nicht wiederholen):\n` +
+    `${currentProfile ? JSON.stringify(currentProfile, null, 0).slice(0, 8000) : "(noch leer)"}\n\n` +
+    `SITZUNGS-NR: ${sessionNr ?? "—"} · SESSION-ID: ${sessionId}\n\n` +
+    `TRANSKRIPT:\n${transcript}`;
+
+  return await callGateway(apiKey, "google/gemini-2.5-pro", {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userContent },
+    ],
+    tools: [ANAMNESE_TOOL],
+    tool_choice: { type: "function", function: { name: "return_anamnese" } },
+  });
+}
+
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -829,6 +945,24 @@ Deno.serve(async (req: Request) => {
     if (task === "depression-kpi-extract") {
       try {
         const result = await runKPIExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
+                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        return new Response(JSON.stringify({ error: text }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+
+    // Spezial-Pfad: Anamnese-Extraktion (VT-Bögen 1–3)
+    if (task === "anamnese-extract") {
+      try {
+        const result = await runAnamneseExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
