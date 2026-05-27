@@ -61,7 +61,7 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
     return sorted.map((s, i) => ({ session: s, nr: i + 1, kpis: s.sessionKPIs }));
   }, [sessions]);
 
-  const withKPIs = rows.filter(r => r.kpis) as Required<Pick<Row, "kpis">> & Row[] extends never ? Row[] : Row[];
+  const withKPIs = rows.filter(r => r.kpis);
   const chartData = withKPIs.map(r => {
     const k = r.kpis!;
     return {
