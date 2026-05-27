@@ -107,7 +107,7 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
       toast.error("Bitte zuerst Patient:in wählen und Session speichern.");
       return;
     }
-    if (!currentTranscript.trim()) {
+    if (!currentSessionId || !currentTranscript?.trim()) {
       toast.error("Bitte zuerst ein Transkript im KV-Verlauf-Tab erfassen.");
       return;
     }
