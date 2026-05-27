@@ -5,8 +5,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, FileText, Presentation } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Pencil, FileText, Presentation, User, Activity } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
+import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -18,40 +21,56 @@ export default function PatientDetail() {
 
   return (
     <>
-      <PageHeader title={patient.id}
+      <PageHeader
+        title={patient.id}
         description={`${patient.approach} · ${patient.diagnoses.join(", ") || "keine Diagnose-Tags"}`}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" asChild><Link to={`/patienten/${patient.id}/edit`}><Pencil className="size-4 mr-2" />Bearbeiten</Link></Button>
-            <Button asChild><Link to={`/sessions/neu?patient=${patient.id}`}><Plus className="size-4 mr-2" />Session</Link></Button>
+            <Button variant="outline" asChild>
+              <Link to={`/patienten/${patient.id}/edit`}><Pencil className="size-4 mr-2" />Bearbeiten</Link>
+            </Button>
+            <Button asChild>
+              <Link to={`/sessions/neu?patient=${patient.id}`}><Plus className="size-4 mr-2" />Session</Link>
+            </Button>
           </div>
-        } />
+        }
+      />
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1"><CardContent className="p-5 space-y-3 text-sm">
+      <Card className="mb-4">
+        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
           <Field label="Status" value={patient.active ? "In Behandlung" : "Archiviert"} />
           <Field label="Altersgruppe" value={patient.ageGroup || "—"} />
           <Field label="Geschlecht" value={patient.gender || "—"} />
           <Field label="Therapiebeginn" value={patient.startDate || "—"} />
-          <div>
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Therapieziele</div>
-            <div className="mt-1">{patient.goals || <span className="text-muted-foreground">—</span>}</div>
-          </div>
-        </CardContent></Card>
+          <Field label="Sessions" value={String(sessions?.length ?? 0)} />
+        </CardContent>
+      </Card>
 
-        <div className="md:col-span-2 space-y-6">
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg flex items-center gap-2"><FileText className="size-4" /> Sessions</h2>
-              <Button size="sm" variant="outline" asChild><Link to={`/sessions/neu?patient=${patient.id}`}>+ Neu</Link></Button>
-            </div>
-            <Card><CardContent className="p-0 divide-y">
+      <Tabs defaultValue="anamnese" className="w-full">
+        <TabsList>
+          <TabsTrigger value="anamnese"><User className="size-4 mr-2" />Anamnese-Profil</TabsTrigger>
+          <TabsTrigger value="verlauf"><Activity className="size-4 mr-2" />Therapieverlauf</TabsTrigger>
+          <TabsTrigger value="sessions"><FileText className="size-4 mr-2" />Sessions</TabsTrigger>
+          <TabsTrigger value="decks"><Presentation className="size-4 mr-2" />Slide-Decks</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="anamnese" className="mt-4">
+          <AnamneseProfilePanel patientId={patient.id} patientPseudonym={patient.id} />
+        </TabsContent>
+
+        <TabsContent value="verlauf" className="mt-4">
+          <TherapieverlaufDashboard patientId={patient.id} patientPseudonym={patient.id} />
+        </TabsContent>
+
+        <TabsContent value="sessions" className="mt-4">
+          <Card>
+            <CardContent className="p-0 divide-y">
               {(!sessions || sessions.length === 0) && (
                 <div className="p-5 text-sm text-muted-foreground">Noch keine Sessions.</div>
               )}
               {sessions?.map((s, idx) => {
                 const total = sessions.length;
-                const nr = total - idx; // reverse-sorted: newest first
+                const nr = total - idx;
                 return (
                   <Link key={s.id} to={`/sessions/${s.id}`} className="block p-4 hover:bg-muted/50">
                     <div className="flex justify-between items-center text-sm gap-3">
@@ -69,15 +88,18 @@ export default function PatientDetail() {
                   </Link>
                 );
               })}
-            </CardContent></Card>
-          </section>
+            </CardContent>
+          </Card>
+          <div className="mt-3">
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/sessions/neu?patient=${patient.id}`}>+ Neue Session</Link>
+            </Button>
+          </div>
+        </TabsContent>
 
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg flex items-center gap-2"><Presentation className="size-4" /> Slide-Decks</h2>
-              <Button size="sm" variant="outline" asChild><Link to={`/slides/neu?patient=${patient.id}`}>+ Neu</Link></Button>
-            </div>
-            <Card><CardContent className="p-0 divide-y">
+        <TabsContent value="decks" className="mt-4">
+          <Card>
+            <CardContent className="p-0 divide-y">
               {(!decks || decks.length === 0) && (
                 <div className="p-5 text-sm text-muted-foreground">Noch keine personalisierten Decks.</div>
               )}
@@ -87,10 +109,15 @@ export default function PatientDetail() {
                   <div className="text-xs text-muted-foreground mt-0.5">{d.slides.length} Slides · {formatDateTime(d.updatedAt)}</div>
                 </Link>
               ))}
-            </CardContent></Card>
-          </section>
-        </div>
-      </div>
+            </CardContent>
+          </Card>
+          <div className="mt-3">
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/slides/neu?patient=${patient.id}`}>+ Neues Deck</Link>
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

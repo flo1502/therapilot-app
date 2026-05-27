@@ -14,7 +14,7 @@ import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
 import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
 import { SchemaChatFeed } from "@/components/SchemaChatFeed";
 import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
-import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FORMATS: SessionFormat[] = ["VT-Verlauf", "Frei"];
@@ -96,7 +96,6 @@ export default function SessionEdit() {
           <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
           <TabsTrigger value="schemas">CBT-Schemata</TabsTrigger>
           <TabsTrigger value="verlauf">Therapieverlauf</TabsTrigger>
-          <TabsTrigger value="anamnese">Anamnese</TabsTrigger>
           <TabsTrigger value="slides">Folien</TabsTrigger>
         </TabsList>
 
@@ -145,18 +144,8 @@ export default function SessionEdit() {
             patientPseudonym={s.patientId}
           />
         </TabsContent>
-        <TabsContent value="anamnese" className="mt-4">
-          {s.patientId ? (
-            <AnamneseProfilePanel
-              patientId={s.patientId}
-              currentSessionId={s.id}
-              currentTranscript={s.transcript ?? s.rawNotes ?? ""}
-              patientPseudonym={s.patientId}
-            />
-          ) : (
-            <div className="text-sm text-muted-foreground">Bitte zuerst Patient:in wählen.</div>
-          )}
-        </TabsContent>
+
+
 
 
         <TabsContent value="slides" className="mt-4">
