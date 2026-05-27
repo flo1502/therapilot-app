@@ -68,6 +68,20 @@ export default function Settings() {
     toast.success("Alle Daten gelöscht.");
   };
 
+  const seedDemo = async () => {
+    const exists = await demoExists();
+    if (exists && !confirm("Demo-Patient existiert bereits. Sessions überschreiben?")) return;
+    setBusy(true);
+    try {
+      const res = await seedDemoPatient(exists);
+      toast.success(`Demo geladen: ${res.sessions} Sessions für ${DEMO_PATIENT_ID}.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Seeding fehlgeschlagen.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <PageHeader title="Einstellungen" description="Backup, Cloud-Sync, Datenschutz." />
