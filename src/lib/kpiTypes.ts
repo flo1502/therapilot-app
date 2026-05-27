@@ -345,3 +345,119 @@ export function generateClinicalSummary(points: SessionPoint[]): string[] {
 
   return lines;
 }
+
+// ============== Pattern Engine (cross-session) ==============
+
+export function computeSocialEngagement(k: SessionKPIs): number {
+  const init = n(k.socialInitiated);
+  const total = n(k.socialContactsCount);
+  const score = init * 12 + (total - init) * 6;
+  return Math.round(clamp(score, 0, 100));
+}
+
+export function computeBeliefLoad(k: SessionKPIs): number {
+  return n(k.negativeBeliefsCount);
+}
+
+export function computeEmotionRegScore(k: SessionKPIs): number {
+  return Math.round(clamp(((n(k.emotionAwareness) + n(k.emotionRegulation)) / 10) * 100, 0, 100));
+}
+
+export type PatternSeverity = "positive" | "info" | "warning" | "critical";
+
+export interface DetectedPattern {
+  id: string;
+  severity: PatternSeverity;
+  title: string;
+  detail: string;
+  sessionRange?: string;
+}
+
+export function detectPatterns(points: SessionPoint[]): DetectedPattern[] {
+  const out: DetectedPattern[] = [];
+  if (points.length === 0) return out;
+
+  // Belief persistence: negativeBeliefsCount >= 3 stable last 3 sessions
+  if (points.length >= 3) {
+    const last3 = points.slice(-3);
+    if (last3.every(p => n(p.kpis.negativeBeliefsCount) >= 3)) {
+      out.push({
+        id: "belief-persistence",
+        severity: "warning",
+        title: "Core Schema aktiv",
+        detail: `Negative Beliefs bleiben über 3 Sessions stabil hoch (${last3.map(p => p.kpis.negativeBeliefsCount).join(" → ")}).`,
+        sessionRange: `S${last3[0].nr}–S${last3.at(-1)!.nr}`,
+      });
+    }
+  }
+
+  // Avoidance trend
+  const avoid = points.map(p => n(p.kpis.avoidanceCount));
+  if (avoid.length >= 2) {
+    const delta = avoid.at(-1)! - avoid[0];
+    if (delta >= 2) out.push({
+      id: "avoidance-up", severity: "warning",
+      title: "Vermeidungsverhalten steigt",
+      detail: `Avoidance +${delta} seit Session 1.`,
+      sessionRange: `S1–S${points.at(-1)!.nr}`,
+    });
+    else if (delta <= -2) out.push({
+      id: "avoidance-down", severity: "positive",
+      title: "Vermeidung sinkt",
+      detail: `Avoidance ${delta} – Annäherungsverhalten nimmt zu.`,
+      sessionRange: `S1–S${points.at(-1)!.nr}`,
+    });
+  }
+
+  // Cognitive shift pattern (adaptive ↑ AND negative ↓ across 3+)
+  if (points.length >= 3) {
+    const last3 = points.slice(-3);
+    const adp = last3.map(p => n(p.kpis.adaptiveBeliefsCount));
+    const neg = last3.map(p => n(p.kpis.negativeBeliefsCount));
+    if (adp[2] > adp[0] && neg[2] < neg[0]) {
+      out.push({
+        id: "cognitive-shift",
+        severity: "positive",
+        title: "Cognitive Shift erkannt",
+        detail: `Adaptive Beliefs ↑ (${adp[0]}→${adp[2]}) und negative Beliefs ↓ (${neg[0]}→${neg[2]}).`,
+        sessionRange: `S${last3[0].nr}–S${last3[2].nr}`,
+      });
+    }
+  }
+
+  // Activation recovery: BAI monotonic up across last 3
+  if (points.length >= 3) {
+    const last3 = points.slice(-3).map(p => computeBAI(p.kpis));
+    if (last3[0] < last3[1] && last3[1] < last3[2]) {
+      out.push({
+        id: "activation-recovery",
+        severity: "positive",
+        title: "Activation Recovery",
+        detail: `BAI monoton steigend (${last3[0]} → ${last3[1]} → ${last3[2]}).`,
+        sessionRange: `S${points.at(-3)!.nr}–S${points.at(-1)!.nr}`,
+      });
+    }
+  }
+
+  // Risk fluctuation
+  const risks = points.map(p => p.kpis.riskLevel ?? 0);
+  const rMax = Math.max(...risks);
+  const rMin = Math.min(...risks);
+  if (rMax - rMin >= 2) {
+    out.push({
+      id: "risk-fluctuation",
+      severity: "critical",
+      title: "Risiko-Fluktuation",
+      detail: `Risk schwankt zwischen Level ${rMin} und ${rMax} – instabiles Muster.`,
+    });
+  } else if (rMax >= 2) {
+    out.push({
+      id: "risk-elevated",
+      severity: "critical",
+      title: "Risiko anhaltend erhöht",
+      detail: `Maximales Risk-Level ${rMax} dokumentiert.`,
+    });
+  }
+
+  return out;
+}

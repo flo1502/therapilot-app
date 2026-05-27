@@ -24,6 +24,7 @@ import {
   PHQ_THRESHOLDS, BDI_THRESHOLDS, HAMD_THRESHOLDS,
   generateAlerts, generateClinicalSummary, InsightAlert,
 } from "@/lib/kpiTypes";
+import { PatternEnginePanel } from "@/components/kpi/PatternEnginePanel";
 
 interface Props {
   patientId: string;
@@ -189,6 +190,7 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
             <TabsTrigger value="alerts">
               Alerts {alerts.length > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1">{alerts.length}</Badge>}
             </TabsTrigger>
+            <TabsTrigger value="patterns">Pattern Engine</TabsTrigger>
           </TabsList>
 
           {/* ============ OVERVIEW ============ */}
@@ -415,6 +417,11 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
                   if (r) setDrilldown(r);
                 }} />
             ))}
+          </TabsContent>
+
+          {/* ============ PATTERN ENGINE ============ */}
+          <TabsContent value="patterns" className="mt-4">
+            <PatternEnginePanel points={withKPIs.map(r => ({ nr: r.nr, kpis: r.kpis! }))} />
           </TabsContent>
         </Tabs>
       )}
