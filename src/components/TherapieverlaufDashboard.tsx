@@ -189,6 +189,7 @@ export function TherapieverlaufDashboard({ patientId, currentSessionId, currentT
             <TabsTrigger value="alerts">
               Alerts {alerts.length > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1">{alerts.length}</Badge>}
             </TabsTrigger>
+            <TabsTrigger value="patterns">Pattern Engine</TabsTrigger>
           </TabsList>
 
           {/* ============ OVERVIEW ============ */}
