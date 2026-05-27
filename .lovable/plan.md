@@ -1,112 +1,153 @@
 
-# Therapieverlauf – Depression KPI Dashboard
+# Therapieverlauf v2 – Clinical Depression Dashboard
 
-Neuer Tab neben „CBT-Schemata", der über mehrere Sessions hinweg den Therapiefortschritt einer Patient:in (Fokus Depression F32/F33) visualisiert.
+Erweitert das bestehende `TherapieverlaufDashboard` zu einem klinisch lesbaren Dashboard mit 5 Master-KPIs, 3 rekonstruierten Diagnostik-Skalen (PHQ-9 / BDI-II / HAM-D), SCID-Status, Session-Timeline, Cross-Scale-Overlay, Clinical Summary und Insight Alerts.
 
-## 1. Datenmodell (additive, lokal in Dexie)
+## 1. Datenmodell (additive Erweiterung von `SessionKPIs`)
 
-Pro Session werden KPIs extrahiert und gespeichert. Neu auf `SessionEntry`:
+Bestehende Felder bleiben. Ergänzungen in `src/lib/kpiTypes.ts`:
 
 ```ts
 interface SessionKPIs {
-  depressionSeverity: number;        // 0–100 (DSI)
-  negativeBeliefsCount: number;
-  adaptiveBeliefsCount: number;
-  positiveActivitiesCount: number;
-  activeActivities?: number;
-  passiveActivities?: number;
-  socialContactsCount: number;
-  socialInitiated?: number;
-  socialPassive?: number;
-  emotionAwareness: number;          // 0–5
-  emotionRegulation: number;         // 0–5
-  positiveSelfStatements: number;
-  negativeSelfStatements?: number;
-  notes?: string;
-  extractedAt: number;
+  // ... bestehende Felder
+
+  // Master-KPIs (rekonstruierte Sub-Signale)
+  mood?: number;              // 0-10
+  anhedonia?: number;         // 0-10
+  energy?: number;            // 0-10
+  cognition?: number;         // 0-10
+  hopelessness?: number;      // 0-10
+  selfDeprecation?: number;   // 0-10
+  avoidanceCount?: number;
+  functioningWork?: number;   // 0-10
+  functioningSocial?: number; // 0-10
+  functioningDaily?: number;  // 0-10
+  sleepDisturbance?: number;  // 0-10
+  psychomotor?: number;       // 0-10  (retardation/agitation kombiniert)
+  somaticSymptoms?: number;   // 0-10
+  guilt?: number;             // 0-10
+
+  // Risk
+  riskLevel?: 0 | 1 | 2 | 3;  // none / passive / active / planning
+  riskNotes?: string;
+
+  // SCID / CIDI Proxy
+  scid?: {
+    coreSymptoms: boolean;
+    durationOver2Weeks: boolean;
+    functionalImpairment: boolean;
+    exclusionOtherDisorder: boolean | null; // null = unklar
+    confidence: "low" | "medium" | "high";
+    likelyDiagnosis?: string; // z. B. "Major Depressive Episode"
+  };
+
+  // Key quotes für Timeline-Drilldown
+  keyQuotes?: { text: string; tag: "belief"|"emotion"|"risk"|"activity"|"insight" }[];
 }
-sessionKPIs?: SessionKPIs;
 ```
 
-Dexie auf v5 hochziehen (additiv, kein neuer Index).
+Composite-Indizes (alle 0–100, im Frontend berechnet, keine Speicherung nötig):
 
-Composite-Metriken berechnet im Frontend:
-- **Cognitive Shift Index** = adaptive − negative
-- **Depression Recovery Index (DRI)** = gewichteter Score (Symptom invertiert + Cognition + Behavior + Social + Emotion + Self-worth) → 0–100
+- **DSI** (Depression Severity): gewichtet aus `mood, anhedonia, energy, cognition, depressionSeverity`
+- **CDI** (Cognitive Distortion): aus `negativeBeliefs, hopelessness, selfDeprecation` minus `adaptiveBeliefs`
+- **BAI** (Behavioral Activation): `positiveActivities` vs `avoidanceCount`
+- **Functioning Index** (WHODAS-like): Mittelwert `functioningWork/Social/Daily`
+- **Risk Index**: direkt `riskLevel` (0–3)
 
-## 2. KI-Extraktion
+Rekonstruierte Skalen (AI-mapped, 0–Skalenmax):
 
-Neuer Task `depression-kpi-extract` in `supabase/functions/ai-assist/index.ts` (Gemini 2.5 Pro mit Tool-Calling für strukturiertes JSON). Input: Transcript + optional `kvDocumentation` + `schemaAnalysis`. Output: `SessionKPIs`-Objekt mit konservativen Defaults (0), nur was im Transcript belegt ist.
+- **PHQ-9 AI** (0–27): affect + cognition + sleep + functioning
+- **BDI-II AI** (0–63): beliefs + self-worth + guilt + hopelessness gewichtet
+- **HAM-D AI** (0–52): energy + psychomotor + somatic + sleep gewichtet
 
-Auslösung: Button „KPIs extrahieren" pro Session im Dashboard-Header (oder automatisch beim Öffnen, falls fehlend). Gespeichert via `db.sessions.put`.
+Reine Berechnungs-Helpers in `kpiTypes.ts` (`computePHQ9`, `computeBDI`, `computeHAMD`, `computeDSI`, `computeCDI`, `computeBAI`, `computeFunctioning`).
 
-## 3. UI / Komponenten
+Dexie bleibt auf v5 (nur Schema-loses Feld erweitert, kein Migrationsschritt nötig – die Felder sind optional).
 
-Neuer Tab in `SessionEdit.tsx`:
+## 2. AI-Extraktion erweitern
+
+In `supabase/functions/ai-assist/index.ts`, Task `depression-kpi-extract`: Tool-Schema (`return_session_kpis`) um die neuen Felder ergänzen (mood, anhedonia, energy, cognition, hopelessness, selfDeprecation, avoidanceCount, functioning*, sleepDisturbance, psychomotor, somaticSymptoms, guilt, riskLevel, scid-Objekt, keyQuotes-Array).
+
+Prompt-Regel bleibt konservativ:
+- Nur Werte setzen, die im Transcript belegt sind, sonst `undefined`/`0`.
+- `scid.confidence`: nur "high", wenn alle 4 Kriterien klar; sonst "medium"/"low".
+- `keyQuotes`: max. 5 wörtliche Zitate.
+
+Kein neuer Task – derselbe Button extrahiert alles in einem Call.
+
+## 3. UI-Struktur (`TherapieverlaufDashboard.tsx`)
+
+Tabs werden neu gegliedert:
+
+```text
+[ Overview ] [ Master KPIs ] [ Diagnostik ] [ Timeline ] [ Cross-Scale ] [ Alerts ]
 ```
-[ KV-Verlauf ] [ CBT-Schemata ] [ Therapieverlauf ] [ Folien ]
-```
 
-Da der Verlauf patientenübergreifend (alle Sessions des Patienten) ist, lädt die Komponente `db.sessions.where('patientId').equals(patientId)` und sortiert nach Datum.
-
-Neue Datei `src/components/TherapieverlaufDashboard.tsx` mit internen Sub-Tabs:
-
-```
-[ Overview ] [ Symptoms ] [ Cognitive Shift ] [ Behavior ] [ Social ] [ Emotion ] [ Self-Worth ]
-```
+Bestehende Sub-Tabs (Symptoms, Cognitive Shift, Behavior, Social, Emotion, Self-Worth) wandern unter **Master KPIs** als kleine Karten-Sektionen — bleiben funktional erhalten.
 
 ### Overview
-- **DRI Big Number** mit Trend-Pfeil (aktuell vs. erste Session)
-- Mini-Sparklines für jede der 6 KPI-Kategorien
-- Session-Count + Zeitraum
+- DRI Big Number + Trend (bestehend)
+- Daneben: 5 KPI-Tiles (DSI, CDI, BAI, Functioning, Risk) mit Farbe + Trend-Pfeil
+- Darunter: Clinical Summary (auto-generierter Text, siehe §5)
 
-### Symptoms (DSI)
-- Area-Chart (Recharts `AreaChart`) mit Gradient rot→gelb→grün
-- X: Session-Nummer, Y: 0–100
+### Master KPIs (5 Charts gestapelt)
+1. **DSI** — Area Chart rot→gelb→grün, Y 0–100
+2. **CDI** — 2 Linien (negative ↓, adaptive ↑)
+3. **BAI** — Stacked Bar (positive grün, avoidance rot)
+4. **Functioning** — Line Chart 0–100
+5. **Risk** — Step-Line mit kritischen Markern (Punkt rot ab Level 2)
 
-### Cognitive Shift
-- Dual Line Chart: rote Linie (negative), grüne Linie (adaptive)
-- Darunter: Cognitive Shift Index als Bar Chart pro Session
+### Diagnostik (PHQ / BDI / HAM-D / SCID)
+- 3 separate Line Charts (PHQ-9, BDI-II, HAM-D) mit klinischen Schwellenwerten als Referenzlinien (z. B. PHQ ≥10 moderat, ≥20 schwer)
+- SCID-Status-Karte mit Checkmarks pro Kriterium + Confidence-Badge + likelyDiagnosis-Text
 
-### Behavior
-- Stacked Bar Chart: active (grün) + passive (grau)
-- Tooltip mit Totals
+### Timeline
+- Horizontale Session-Reihe (Punkt pro Session, Farbe = DSI-Schweregrad)
+- Klick auf Punkt → Drawer rechts mit PHQ/BDI/HAM-D Werten, beliefs, activities, risk events, keyQuotes
 
-### Social
-- Line Chart mit Dots, Tooltip zeigt initiated vs. passive
+### Cross-Scale
+- Ein gemeinsamer Line Chart: PHQ-9 (normalisiert 0–100), BDI-II (norm.), HAM-D (norm.) übereinander
+- Korrelations-Hinweis: "Alle Skalen bestätigen Verlauf" wenn alle 3 in gleiche Richtung trenden
 
-### Emotion Regulation
-- Step Chart (Recharts `LineChart type="step"`) für Awareness + Regulation (0–5)
-- Daneben Milestone-Liste mit Checkmarks (erreicht, wenn Score ≥ Schwelle)
+### Alerts
+- Regelbasiert im Frontend aus den letzten 3 Sessions:
+  - "↓ Cognitive distortion in 3 consecutive sessions" wenn CDI 3× monoton fällt
+  - "↑ Behavioral activation significantly increased" wenn BAI Δ ≥ 20
+  - "⚠ Risk spike in Session X (passive/active ideation)" wenn riskLevel ≥ 1
+  - "↓ Functioning drop" wenn Functioning Δ ≤ −15
+- Liste mit Severity-Icon, Session-Referenz, Klick → springt in Timeline-Drawer
 
-### Self-Worth
-- Line Chart positive self statements; optional zweite Linie negative
+## 4. Clinical Interpretation (Auto-Summary)
 
-## 4. Verwendete Bibliothek
+Reines Frontend (deterministische Regeln, keine zusätzliche AI-Runde), z. B.:
 
-`recharts` ist bereits via `chart.tsx` im Projekt. Keine neuen Dependencies.
+- "depressive Symptomatik nimmt kontinuierlich ab" wenn DSI über letzten 3 Sessions monoton fällt
+- "kognitive Verzerrungen reduzieren sich" wenn CDI ↓
+- "Aktivitätsniveau steigt" wenn BAI ↑
+- "Risiko aktuell niedrig stabil" wenn alle riskLevel ≤ 1
 
-## 5. Edge Cases
+Funktion `generateClinicalSummary(sessions[])` in `kpiTypes.ts`.
 
-- 0 Sessions mit KPIs → Empty State mit CTA „KPIs für diese Session extrahieren"
-- 1 Session → Charts mit einem Datenpunkt + Hinweis „mind. 2 Sessions für Trends"
-- Patient hat keine Depression-Diagnose → Banner „Dashboard optimiert für F32/F33", aber trotzdem nutzbar
-- Manuelle Korrektur: Edit-Dialog pro Session, um KI-Werte zu überschreiben (Therapeut bleibt im Lead)
-
-## 6. Dateien
+## 5. Dateien
 
 **Neu:**
-- `src/components/TherapieverlaufDashboard.tsx` (Haupt-View mit Sub-Tabs)
-- `src/components/kpi/SymptomChart.tsx`, `CognitiveShiftChart.tsx`, `BehaviorChart.tsx`, `SocialChart.tsx`, `EmotionChart.tsx`, `SelfWorthChart.tsx`, `DRIOverview.tsx`, `KPIEditDialog.tsx`
-- `src/lib/kpiTypes.ts` (Typen + DRI-Berechnung)
+- `src/components/kpi/MasterKpiRow.tsx` (5 Tiles)
+- `src/components/kpi/DiagnosticScalesPanel.tsx` (PHQ/BDI/HAM-D + SCID)
+- `src/components/kpi/SessionTimeline.tsx` (Punkte + Drawer)
+- `src/components/kpi/CrossScaleOverlay.tsx`
+- `src/components/kpi/InsightAlerts.tsx`
+- `src/components/kpi/ClinicalSummary.tsx`
+- `src/components/kpi/RiskStepChart.tsx`
 
 **Geändert:**
-- `src/lib/db.ts` (v5, `sessionKPIs` Feld)
-- `src/pages/SessionEdit.tsx` (neuer Tab)
-- `supabase/functions/ai-assist/index.ts` (neuer Task)
-- `src/lib/ai/provider.ts` (Task-Typ)
+- `src/lib/kpiTypes.ts` (neue Felder + Compute-Helpers + Alert/Summary-Logik)
+- `src/components/TherapieverlaufDashboard.tsx` (neue Tab-Struktur, integriert die Sub-Komponenten)
+- `supabase/functions/ai-assist/index.ts` (erweitertes Tool-Schema + Prompt)
+
+Keine Dexie-Migration, keine neuen npm-Packages (Recharts + shadcn vorhanden).
 
 ## Offene Fragen
 
-1. Soll das Dashboard nur depressions-spezifisch sein, oder generisch mit Depression als Default? (Plan: Default Depression, später erweiterbar.)
-2. KPI-Extraktion automatisch beim Öffnen oder nur manuell per Button? (Plan: manuell, um Kosten/Latenz zu kontrollieren.)
+1. **Scoring-Kalibrierung PHQ/BDI/HAM-D**: Akzeptierst du heuristische Mappings (kein klinisch validierter Score, klar als "AI estimate" gelabelt)? Empfehlung: ja, mit deutlichem Disclaimer "AI-rekonstruierte Schätzung — kein Diagnoseinstrument".
+2. **Risk-Handling**: Soll bei `riskLevel ≥ 2` ein prominentes rotes Banner oben im Dashboard erscheinen (Empfehlung: ja), und soll ein Alert per Toast beim Öffnen ausgelöst werden?
+3. **Alerts-Persistenz**: Alerts nur in-memory aus aktuellen Sessions berechnen (Empfehlung), oder dismissable + in Dexie speichern?
