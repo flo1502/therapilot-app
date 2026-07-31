@@ -27,6 +27,8 @@ export default function Dashboard() {
         }
       />
 
+      <PreSessionCard />
+
       <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 mb-6 flex items-start gap-3">
         <AlertTriangle className="size-4 text-warning mt-0.5 shrink-0" />
         <div className="text-sm">
