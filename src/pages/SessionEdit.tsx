@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { db, SessionEntry, SessionFormat, uid } from "@/lib/db";
+import { db, SessionEntry, uid } from "@/lib/db";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,6 @@ import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const FORMATS: SessionFormat[] = ["VT-Verlauf", "Frei"];
 
 export default function SessionEdit() {
   const { id } = useParams();
