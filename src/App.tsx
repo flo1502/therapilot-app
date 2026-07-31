@@ -11,6 +11,7 @@ import PatientEdit from "./pages/PatientEdit";
 import PatientDetail from "./pages/PatientDetail";
 import SessionsList from "./pages/SessionsList";
 import SessionEdit from "./pages/SessionEdit";
+import SessionWizard from "./pages/SessionWizard";
 import TemplatesLibrary from "./pages/TemplatesLibrary";
 import TemplateDetail from "./pages/TemplateDetail";
 import SlidesList from "./pages/SlidesList";
@@ -38,7 +39,7 @@ const App = () => {
               <Route path="/patienten/:id" element={<PatientDetail />} />
               <Route path="/patienten/:id/edit" element={<PatientEdit />} />
               <Route path="/sessions" element={<SessionsList />} />
-              <Route path="/sessions/neu" element={<SessionEdit />} />
+              <Route path="/sessions/neu" element={<SessionWizard />} />
               <Route path="/sessions/:id" element={<SessionEdit />} />
               <Route path="/templates" element={<TemplatesLibrary />} />
               <Route path="/templates/:id" element={<TemplateDetail />} />
