@@ -68,6 +68,9 @@ export interface SessionEntry {
 
   // Depression KPI Tracking (additive, optional)
   sessionKPIs?: import("./kpiTypes").SessionKPIs;
+
+  // Abgehakte "Nächste Schritte" aus der KV-Doku (additive, optional)
+  naechsteSchritteDone?: string[];
 }
 
 export interface SlideDeck {
@@ -177,6 +180,13 @@ class TheraPilotDB extends Dexie {
     });
     // v6: additive – anamneseProfile am Patient, keine neuen Indizes.
     this.version(6).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v7: additive – naechsteSchritteDone an der Session, keine neuen Indizes.
+    this.version(7).stores({
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",

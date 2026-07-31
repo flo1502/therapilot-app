@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/PageHeader";
+import { PreSessionCard } from "@/components/PreSessionCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -26,6 +27,8 @@ export default function Dashboard() {
           </Button>
         }
       />
+
+      <PreSessionCard />
 
       <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 mb-6 flex items-start gap-3">
         <AlertTriangle className="size-4 text-warning mt-0.5 shrink-0" />

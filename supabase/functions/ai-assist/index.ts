@@ -442,10 +442,16 @@ const KV_COMPOSE_TOOL = {
         vereinbarungen: { type: "string" },
         risikoabklaerung: { type: "string" },
         administrative_hinweise: { type: "string" },
+        naechste_schritte: {
+          type: "array",
+          items: { type: "string" },
+          description: "3-5 offene Aufgaben/Hausaufgaben für die Patient:in, die in der Sitzung besprochen wurden. Leeres Array, wenn keine.",
+        },
       },
       required: [
         "aktuelle_symptomatik","inhalte_der_sitzung","therapeutische_interventionen",
         "verlauf_und_einschaetzung","vereinbarungen","risikoabklaerung","administrative_hinweise",
+        "naechste_schritte",
       ],
       additionalProperties: false,
     },
@@ -549,6 +555,8 @@ STIL-REGELN (kritisch!):
 - Risikoabklärung MUSS eine explizite Aussage zu Suizidalität enthalten (auch "nicht exploriert").
 - Patient:in immer mit Pseudonym '${pseudo ?? "[PATIENT:IN]"}' oder neutral ("die Patientin", "der Patient", "Pat.").
 - Abrechnungsrelevante Hinweise priorisieren (Format, Dauer, Setting, Besonderheiten).
+- naechste_schritte: max. 3-5 knappe Stichpunkte mit offenen Aufgaben/Hausaufgaben für die Patient:in, die in der Sitzung besprochen wurden. Jeweils ein kurzer Satz, ohne Nummerierung. Wenn keine besprochen wurden: leeres Array.
+- administrative_hinweise: nur ausfüllen, wenn im Transkript/Kontext tatsächlich etwas mit Fristen oder Formalia genannt wurde (z. B. Antrag läuft aus, Verlängerung nötig, Bericht fällig). Nichts erfinden – sonst leer lassen ("").
 ${previousErrors.length ? `\nVORHERIGER VERSUCH HATTE FEHLER – BITTE BEHEBEN:\n${previousErrors.map((e) => `- ${e}`).join("\n")}` : ""}`;
 
   const documentation = await callGateway(apiKey, "openai/gpt-5", {

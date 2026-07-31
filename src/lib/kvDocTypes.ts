@@ -54,7 +54,19 @@ export interface KVDocumentation {
   vereinbarungen: string;
   risikoabklaerung: string;
   administrative_hinweise: string;
+  /** Offene Aufgaben / Hausaufgaben für die Patient:in (max. 5) – additiv, nicht Teil der 7 Pflichtsektionen. */
+  naechste_schritte?: string[];
 }
+
+/** Die 7 verbindlichen Fließtext-Sektionen. */
+export type KVSectionKey =
+  | "aktuelle_symptomatik"
+  | "inhalte_der_sitzung"
+  | "therapeutische_interventionen"
+  | "verlauf_und_einschaetzung"
+  | "vereinbarungen"
+  | "risikoabklaerung"
+  | "administrative_hinweise";
 
 export interface KVValidationResult {
   valid: boolean;
@@ -68,7 +80,7 @@ export interface KVDocumentationResult {
   documentation: KVDocumentation;
 }
 
-export const KV_SECTION_LABELS: Record<keyof KVDocumentation, string> = {
+export const KV_SECTION_LABELS: Record<KVSectionKey, string> = {
   aktuelle_symptomatik: "Aktuelle Symptomatik",
   inhalte_der_sitzung: "Inhalte der Sitzung",
   therapeutische_interventionen: "Therapeutische Interventionen",
@@ -78,7 +90,7 @@ export const KV_SECTION_LABELS: Record<keyof KVDocumentation, string> = {
   administrative_hinweise: "Administrative / Abrechnungsrelevante Hinweise",
 };
 
-export const KV_SECTION_ORDER: (keyof KVDocumentation)[] = [
+export const KV_SECTION_ORDER: KVSectionKey[] = [
   "aktuelle_symptomatik",
   "inhalte_der_sitzung",
   "therapeutische_interventionen",
@@ -89,7 +101,11 @@ export const KV_SECTION_ORDER: (keyof KVDocumentation)[] = [
 ];
 
 export function kvDocumentationToMarkdown(doc: KVDocumentation): string {
-  return KV_SECTION_ORDER.map(
+  const sections = KV_SECTION_ORDER.map(
     (k) => `**${KV_SECTION_LABELS[k]}**\n${doc[k]?.trim() || "—"}`
   ).join("\n\n");
+  const steps = (doc.naechste_schritte ?? []).filter((s) => s?.trim());
+  return steps.length
+    ? `${sections}\n\n**Nächste Schritte**\n${steps.map((s) => `- ${s}`).join("\n")}`
+    : sections;
 }
