@@ -11,6 +11,7 @@ import PatientEdit from "./pages/PatientEdit";
 import PatientDetail from "./pages/PatientDetail";
 import SessionsList from "./pages/SessionsList";
 import SessionEdit from "./pages/SessionEdit";
+import SessionWizard from "./pages/SessionWizard";
 import TemplatesLibrary from "./pages/TemplatesLibrary";
 import TemplateDetail from "./pages/TemplateDetail";
 import SlidesList from "./pages/SlidesList";
