@@ -295,6 +295,22 @@ export function KVDocumentationPanel({
                 </AccordionItem>
               ))}
             </Accordion>
+
+            <div className="pt-3 space-y-2">
+              <Label className="text-sm font-medium">Nächste Schritte (offene Aufgaben)</Label>
+              <Textarea
+                rows={4}
+                value={(documentation.naechste_schritte ?? []).join("\n")}
+                onChange={(e) =>
+                  updateSection(
+                    "naechste_schritte",
+                    e.target.value.split("\n").map((l) => l.replace(/^[-•]\s*/, "")),
+                  )
+                }
+                placeholder="Eine Aufgabe pro Zeile (max. 5)"
+                className="text-sm"
+              />
+            </div>
           </CardContent>
         </Card>
       )}
