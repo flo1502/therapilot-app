@@ -59,47 +59,41 @@ export default function SessionEdit() {
 
   return (
     <>
-      <PageHeader title={isNew ? "Neue Session" : `Session · ${s.patientId}`}
-        description="Roh-Notiz erfassen, dann AI-strukturiert dokumentieren."
-        actions={<Button onClick={save}><Save className="size-4 mr-2" />Speichern</Button>}
+      <PageHeader title={isNew ? "Neue Sitzung" : `Sitzung · ${s.patientId}`}
+        description="Gesprächsnotiz erfassen – die KI erstellt daraus einen strukturierten Bericht."
+        actions={<Button className="h-12 text-base px-6" onClick={save}><Save className="size-5 mr-2" />Speichern</Button>}
       />
 
-      <Card className="mb-4"><CardContent className="p-5 grid md:grid-cols-4 gap-4">
-        <div className="md:col-span-2">
-          <Label>Patient:in</Label>
+      <Card className="mb-6"><CardContent className="p-6 grid md:grid-cols-3 gap-6">
+        <div>
+          <Label className="text-base">Person (Pseudonym)</Label>
           <Select value={s.patientId} onValueChange={v => setS({ ...s, patientId: v })}>
-            <SelectTrigger><SelectValue placeholder="Pseudonym wählen" /></SelectTrigger>
+            <SelectTrigger className="h-12 text-base mt-2"><SelectValue placeholder="Pseudonym wählen" /></SelectTrigger>
             <SelectContent>
-              {allPatients?.map(p => <SelectItem key={p.id} value={p.id}>{p.id} · {p.approach}</SelectItem>)}
+              {allPatients?.map(p => <SelectItem key={p.id} value={p.id} className="text-base">{p.id} · {p.approach}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label>Datum</Label>
-          <Input type="datetime-local"
+          <Label className="text-base">Datum und Uhrzeit</Label>
+          <Input className="h-12 text-base mt-2" type="datetime-local"
             value={new Date(s.date - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
             onChange={e => setS({ ...s, date: new Date(e.target.value).getTime() })} />
         </div>
         <div>
-          <Label>Dauer (min)</Label>
-          <Input type="number" value={s.durationMin} onChange={e => setS({ ...s, durationMin: parseInt(e.target.value) || 0 })} />
-        </div>
-        <div>
-          <Label>Format</Label>
-          <Select value={s.format} onValueChange={(v: any) => setS({ ...s, format: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{FORMATS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
-          </Select>
+          <Label className="text-base">Dauer in Minuten</Label>
+          <Input className="h-12 text-base mt-2" type="number" value={s.durationMin} onChange={e => setS({ ...s, durationMin: parseInt(e.target.value) || 0 })} />
         </div>
       </CardContent></Card>
 
-      <Tabs defaultValue="kv" className="w-full">
-        <TabsList>
-          <TabsTrigger value="kv">KV-Verlauf</TabsTrigger>
-          <TabsTrigger value="schemas">CBT-Schemata</TabsTrigger>
-          <TabsTrigger value="verlauf">Therapieverlauf</TabsTrigger>
-          <TabsTrigger value="slides">Folien</TabsTrigger>
+      <Tabs defaultValue={search.get("tab") ?? "kv"} className="w-full">
+        <TabsList className="h-auto flex-wrap gap-1 p-1.5">
+          <TabsTrigger className="h-11 px-4 text-base" value="kv">Verhaltenstherapie-Verlauf</TabsTrigger>
+          <TabsTrigger className="h-11 px-4 text-base" value="schemas">Denkmuster-Analyse</TabsTrigger>
+          <TabsTrigger className="h-11 px-4 text-base" value="verlauf">Therapieverlauf</TabsTrigger>
+          <TabsTrigger className="h-11 px-4 text-base" value="slides">Folien</TabsTrigger>
         </TabsList>
+
 
 
         <TabsContent value="kv" className="mt-4">
