@@ -50,7 +50,10 @@ export function validateKVDocumentation(
   for (const key of KV_SECTION_ORDER) {
     const v = doc[key]?.trim();
     if (!v) {
-      errors.push(`Pflichtsektion leer: ${KV_SECTION_LABELS[key]}`);
+      // Administrative Hinweise dürfen leer bleiben (nichts erfinden).
+      if (key !== "administrative_hinweise") {
+        errors.push(`Pflichtsektion leer: ${KV_SECTION_LABELS[key]}`);
+      }
     } else if (v.length < 10) {
       warnings.push(`Sehr kurze Sektion: ${KV_SECTION_LABELS[key]} (${v.length} Zeichen)`);
     }
