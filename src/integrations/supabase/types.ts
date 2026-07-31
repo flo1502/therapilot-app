@@ -18,18 +18,21 @@ export type Database = {
         Row: {
           data: Json
           id: string
+          owner_id: string | null
           patient_id: string | null
           updated_at: number
         }
         Insert: {
           data: Json
           id: string
+          owner_id?: string | null
           patient_id?: string | null
           updated_at?: number
         }
         Update: {
           data?: Json
           id?: string
+          owner_id?: string | null
           patient_id?: string | null
           updated_at?: number
         }
@@ -39,16 +42,19 @@ export type Database = {
         Row: {
           data: Json
           id: string
+          owner_id: string | null
           updated_at: number
         }
         Insert: {
           data: Json
           id: string
+          owner_id?: string | null
           updated_at?: number
         }
         Update: {
           data?: Json
           id?: string
+          owner_id?: string | null
           updated_at?: number
         }
         Relationships: []
@@ -57,18 +63,21 @@ export type Database = {
         Row: {
           data: Json
           id: string
+          owner_id: string | null
           patient_id: string | null
           updated_at: number
         }
         Insert: {
           data: Json
           id: string
+          owner_id?: string | null
           patient_id?: string | null
           updated_at?: number
         }
         Update: {
           data?: Json
           id?: string
+          owner_id?: string | null
           patient_id?: string | null
           updated_at?: number
         }
