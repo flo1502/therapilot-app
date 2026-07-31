@@ -161,7 +161,7 @@ export function KVDocumentationPanel({
     }
   };
 
-  const updateSection = (key: keyof KVDocumentation, value: string) => {
+  const updateSection = (key: keyof KVDocumentation, value: string | string[]) => {
     if (!documentation) return;
     const next = { ...documentation, [key]: value };
     const val = validateKVDocumentation(next, patientPseudonym);
