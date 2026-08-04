@@ -19,21 +19,16 @@ export default function Dashboard() {
 
   const sentRef = useRef(false);
   useEffect(() => {
-    if (sentRef.current || !sessions) return;
+    if (sentRef.current || !sessions || sessions.length === 0) return;
     sentRef.current = true;
-    postSessionsToN8n({
-      event: "dashboard_loaded",
-      sentAt: new Date().toISOString(),
-      sessions: sessions.map((s) => ({
-        id: s.id,
-        patientId: s.patientId,
-        date: s.date,
-        durationMin: s.durationMin,
-        format: s.format,
-        transcript: s.transcript,
-      })),
+    const latest = sessions[0];
+    if (!latest.transcript || latest.transcript.trim().length === 0) return;
+    postToN8nEvaluation({
+      text: latest.transcript,
+      evaluationType: latest.format ?? "Verhaltenstherapie-Verlauf",
     });
   }, [sessions]);
+
 
   return (
     <div className="max-w-5xl mx-auto pb-16">
