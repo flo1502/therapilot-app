@@ -4,6 +4,11 @@
 export const N8N_WEBHOOK_URL =
   "https://fsv5.app.n8n.cloud/webhook/zScWbskPg0wtgVXP";
 
+export type N8nEvaluationPayload = {
+  text: string;
+  evaluationType: string;
+};
+
 export type N8nSessionPayload = {
   event: string;
   sentAt: string;
@@ -16,6 +21,24 @@ export type N8nSessionPayload = {
     transcript?: string;
   }[];
 };
+
+export async function postToN8nEvaluation(payload: N8nEvaluationPayload) {
+  try {
+    const res = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      console.warn("n8n webhook responded with", res.status);
+      return null;
+    }
+    return await res.text();
+  } catch (e) {
+    console.warn("n8n webhook call failed", e);
+    return null;
+  }
+}
 
 export async function postSessionsToN8n(payload: N8nSessionPayload) {
   try {
@@ -34,3 +57,4 @@ export async function postSessionsToN8n(payload: N8nSessionPayload) {
     return null;
   }
 }
+
