@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, FileText, Presentation, Plus, ShieldCheck, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import { postSessionsToN8n } from "@/lib/n8n";
+import { postToN8nEvaluation } from "@/lib/n8n";
 
 export default function Dashboard() {
   const patients = useLiveQuery(() => db.patients.toArray(), []);
