@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { PreSessionCard } from "@/components/PreSessionCard";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, FileText, Presentation, Plus, ShieldCheck, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { postSessionsToN8n } from "@/lib/n8n";
 
 export default function Dashboard() {
   const patients = useLiveQuery(() => db.patients.toArray(), []);
@@ -14,6 +16,24 @@ export default function Dashboard() {
 
   const activePatients = patients?.filter(p => p.active).length ?? 0;
   const totalSessions = useLiveQuery(() => db.sessions.count(), []);
+
+  const sentRef = useRef(false);
+  useEffect(() => {
+    if (sentRef.current || !sessions) return;
+    sentRef.current = true;
+    postSessionsToN8n({
+      event: "dashboard_loaded",
+      sentAt: new Date().toISOString(),
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        patientId: s.patientId,
+        date: s.date,
+        durationMin: s.durationMin,
+        format: s.format,
+        transcript: s.transcript,
+      })),
+    });
+  }, [sessions]);
 
   return (
     <div className="max-w-5xl mx-auto pb-16">
