@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (secrets, local endpoints)
+.env
+
+# Local LLM model weights (large binaries, downloaded separately)
+services/local-llm/app/model/*.gguf
+services/local-llm/data/*
+!services/local-llm/data/.gitkeep
+
+# Python (backend/)
+backend/.venv
+__pycache__
+*.pyc
+.pytest_cache
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

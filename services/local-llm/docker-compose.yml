@@ -1,0 +1,8 @@
+# TODO: define the local-llm service (model server + RAG API).
+# services:
+#   local-llm:
+#     build: ./app
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./data:/data

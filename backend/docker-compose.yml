@@ -1,0 +1,47 @@
+# Local development. `local-llm` is intentionally not defined here: it's the
+# separate service under services/local-llm/ (own docker-compose), reachable
+# via LOCAL_LLM_BASE_URL. That keeps this backend deployable against any
+# OpenAI-compatible inference endpoint (local box today, a GPU server later)
+# without owning the GPU workload itself.
+services:
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://therapilot:therapilot@postgres:5432/therapilot_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: therapilot
+      POSTGRES_PASSWORD: therapilot
+      POSTGRES_DB: therapilot_backend
+    ports:
+      - "5433:5432"
+    volumes:
+      - therapilot_backend_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U therapilot -d therapilot_backend"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional cache/queue for later use (response caching, background doc
+  # ingestion jobs). Not wired into the app yet.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    profiles:
+      - full
+
+volumes:
+  therapilot_backend_pgdata:

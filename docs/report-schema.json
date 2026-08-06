@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "TODO: extract structure from docs/report-templates/ (the 10 Berichtsarten).",
+  "type": "object",
+  "properties": {}
+}
