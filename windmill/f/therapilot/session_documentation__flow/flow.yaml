@@ -1,0 +1,72 @@
+summary: Session-Dokumentation (KV-Verlauf)
+description: 'a→b→c→d: Transkript laden → über lokales LLM in 7
+  KV-Verlauf-Sektionen strukturieren → Pflichtsektionen validieren → nach
+  Supabase zurückschreiben. Trigger: Webhook mit { session_id } (Windmills
+  eingebaute Flow-Webhook-URL, siehe Zusammenfassung — kein eigener http_trigger
+  definiert). Retry nur auf structure_session (2 Versuche, 5s Abstand);
+  fetch_session, validate_sections und save_documentation werden bewusst NICHT
+  wiederholt.'
+value:
+  modules:
+    - id: fetch_session
+      value:
+        type: script
+        input_transforms:
+          session_id:
+            type: javascript
+            expr: flow_input.session_id
+          supabase:
+            type: static
+            value: $res:f/therapilot/therapilot_supabase
+        path: f/therapilot/fetch_session
+    - id: structure_session
+      value:
+        type: script
+        input_transforms:
+          local_llm:
+            type: static
+            value: $res:f/therapilot/local_llm
+          transcript:
+            type: javascript
+            expr: results.fetch_session.transcript
+        path: f/therapilot/structure_session
+      retry:
+        constant:
+          attempts: 2
+          seconds: 5
+    - id: validate_sections
+      value:
+        type: script
+        input_transforms:
+          structured:
+            type: javascript
+            expr: results.structure_session
+        path: f/therapilot/validate_sections
+    - id: save_documentation
+      value:
+        type: script
+        input_transforms:
+          prompt_version:
+            type: static
+            value: kv-verlauf.v1
+          session_id:
+            type: javascript
+            expr: flow_input.session_id
+          structured:
+            type: javascript
+            expr: results.validate_sections
+          supabase:
+            type: static
+            value: $res:f/therapilot/therapilot_supabase
+        path: f/therapilot/save_documentation
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - session_id
+  properties:
+    session_id:
+      type: string
+      description: public.sessions.id (text)
+  required:
+    - session_id

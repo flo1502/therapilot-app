@@ -1,0 +1,30 @@
+description: >-
+  Supabase-Projekt für TheraPilot (Tabellen public.patients / public.sessions
+  / public.decks, siehe supabase/migrations/*.sql). service_role_key wird
+  benötigt, weil Windmill-Jobs nicht als eingeloggter Supabase-Auth-User
+  laufen und die Row-Level-Security-Policies ("Owners can ...") sonst jeden
+  Schreibzugriff verweigern. Niemals im Frontend verwenden. Heißt
+  "therapilot_supabase" statt "supabase", weil diese Windmill-Instanz
+  bereits einen globalen Hub-Resource-Type "supabase" mit anderem Schema
+  ({ key, url }) mitbringt.
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - url
+    - service_role_key
+  properties:
+    url:
+      type: string
+      description: >-
+        Supabase Projekt-URL, z.B. https://xxxxxxxx.supabase.co. Entspricht
+        VITE_SUPABASE_URL aus .env.
+    service_role_key:
+      type: string
+      description: >-
+        Supabase service_role Key (Dashboard → Project Settings → API →
+        service_role). NICHT der anon/publishable Key aus VITE_SUPABASE_PUBLISHABLE_KEY.
+      format: password
+  required:
+    - url
+    - service_role_key

@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=wmill.schema.json
+# wmill.yaml — Windmill CLI configuration
+# Full reference: run "wmill config"
+
+# Default TypeScript runtime for new scripts.
+# Deno, per Schritt 3 der Anfrage (Deno-Syntax).
+defaultTs: deno
+
+# Glob patterns for files to include in sync
+includes:
+  - "f/**"
+  - "*.resource-type.yaml" # resource types are workspace-global, not folder-scoped
+
+# Glob patterns for files to exclude from sync
+excludes: []
+
+# --- What to sync -----------------------------------------------------
+
+skipVariables: false
+skipResources: false
+skipResourceTypes: false
+
+# Skip syncing secrets (true by default for security) — resource *values*
+# for secret fields (service_role_key) are never pulled/pushed as plaintext.
+skipSecrets: true
+
+skipScripts: false
+skipFlows: false
+skipApps: false
+skipFolders: false
+skipWorkspaceDependencies: false
+skipDatatableMigrations: false
+
+# --- Sync behavior ----------------------------------------------------
+
+# Use __flow/__app/__raw_app suffixes instead of .flow/.app/.raw_app
+nonDottedPaths: true
+
+syncBehavior: v1
+
+codebases: []
+
+# --- Workspace bindings -----------------------------------------------
+# Gebunden: thera @ https://app.windmill.dev (nur Entwicklung/Test mit
+# synthetischen Daten, siehe docs/compliance/windmill.md).
+workspaces: {}

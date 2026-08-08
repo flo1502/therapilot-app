@@ -1,0 +1,26 @@
+description: >-
+  OpenAI-kompatibler lokaler Inferenz-Endpunkt (z.B. Ollama), der Transkripte
+  (data-class "patient", siehe src/config/data-classes.ts) verarbeiten darf.
+  Entspricht der Konfiguration in src/lib/ai/providers/local-llama.ts /
+  VITE_LOCAL_LLM_URL / VITE_LOCAL_LLM_MODEL.
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - base_url
+    - model
+  properties:
+    base_url:
+      type: string
+      description: >-
+        OpenAI-kompatible Basis-URL inkl. Pfadpräfix, z.B.
+        http://localhost:11434/v1 (Ollama-Default, siehe .env.example).
+      default: http://localhost:11434/v1
+    model:
+      type: string
+      description: >-
+        Modellname am lokalen Endpunkt, z.B. "psyco" (Default in .env.example).
+      default: psyco
+  required:
+    - base_url
+    - model

@@ -1,0 +1,19 @@
+summary: KV-Verlauf Pflichtsektionen validieren
+description: Prüft, dass alle 7 Pflichtsektionen (src/lib/kvDocTypes.ts)
+  vorhanden und nicht leer sind. Wirft mit klarer Fehlermeldung, welche
+  Sektion(en) fehlen oder leer sind.
+lock: ''
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - structured
+  properties:
+    structured:
+      type: object
+      description: Ergebnis von structure_session (7 KV-Verlauf-Sektionen)
+      default: null
+      format: resource-record
+  required:
+    - structured

@@ -1,0 +1,25 @@
+summary: Session + Transkript aus Supabase laden
+description: Holt public.sessions.data.transcript und patient_id für eine
+  session_id. Wirft, wenn die Session fehlt oder kein Transkript hinterlegt ist.
+lock: '!inline f/therapilot/fetch_session.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - session_id
+    - supabase
+  properties:
+    session_id:
+      type: string
+      description: public.sessions.id (text)
+      default: null
+      originalType: string
+    supabase:
+      type: object
+      description: Supabase-Projekt (service_role)
+      default: null
+      format: resource-therapilot_supabase
+  required:
+    - session_id
+    - supabase

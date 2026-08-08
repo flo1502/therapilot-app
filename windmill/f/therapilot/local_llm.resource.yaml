@@ -1,0 +1,8 @@
+resource_type: local_llm
+description: >-
+  TODO: im Windmill-UI ausfüllen (Resources → f/therapilot/local_llm → Edit).
+  Default für einen lokalen Ollama passend zu .env.example:
+  base_url=http://localhost:11434/v1, model=psyco.
+value:
+  base_url: ""
+  model: ""

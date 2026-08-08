@@ -1,0 +1,41 @@
+summary: KV-Dokumentation nach Supabase zurückschreiben
+description: Schreibt das strukturierte Ergebnis in
+  public.sessions.data.kvDocumentation (Read-Merge-Write) und vermerkt
+  prompt_version in data.kvDocumentationMeta (neues, additives Feld — noch nicht
+  in src/lib/db.ts SessionEntry).
+lock: '!inline f/therapilot/save_documentation.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - session_id
+    - structured
+    - prompt_version
+    - supabase
+  properties:
+    prompt_version:
+      type: string
+      description: z.B. "kv-verlauf.v1" (Dateiname ohne .md)
+      default: null
+      originalType: string
+    session_id:
+      type: string
+      description: public.sessions.id (text)
+      default: null
+      originalType: string
+    structured:
+      type: object
+      description: Validiertes Ergebnis mit den 7 KV-Verlauf-Sektionen
+      default: null
+      format: resource-record
+    supabase:
+      type: object
+      description: Supabase-Projekt (service_role)
+      default: null
+      format: resource-therapilot_supabase
+  required:
+    - session_id
+    - structured
+    - prompt_version
+    - supabase

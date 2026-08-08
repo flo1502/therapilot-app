@@ -1,0 +1,11 @@
+resource_type: therapilot_supabase
+description: >-
+  TODO: im Windmill-UI ausfüllen (Resources → f/therapilot/therapilot_supabase
+  → Edit). url = VITE_SUPABASE_URL aus .env. service_role_key = Supabase
+  Dashboard → Project Settings → API → service_role (Secret, NICHT der
+  anon-Key). Eigener Typ "therapilot_supabase" statt "supabase", weil
+  Windmill bereits einen globalen Hub-Resource-Type "supabase" mit anderem
+  Schema ({ key, url }) mitbringt.
+value:
+  url: ""
+  service_role_key: ""

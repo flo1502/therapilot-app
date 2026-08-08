@@ -1,0 +1,27 @@
+summary: Transkript über lokales LLM in KV-Verlauf strukturieren
+description: 'Ruft den lokalen OpenAI-kompatiblen LLM-Endpunkt mit dem Prompt
+  aus der Variable f/therapilot/kv_verlauf_prompt_v1 (Quelle:
+  prompts/kv-verlauf.v1.md) auf und erzwingt JSON-Output mit den 7
+  KV-Verlauf-Sektionen.'
+lock: '!inline f/therapilot/structure_session.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - transcript
+    - local_llm
+  properties:
+    local_llm:
+      type: object
+      description: Lokaler OpenAI-kompatibler Inferenz-Endpunkt
+      default: null
+      format: resource-local_llm
+    transcript:
+      type: string
+      description: Sitzungs-Transkript (data-class patient)
+      default: null
+      originalType: string
+  required:
+    - transcript
+    - local_llm
