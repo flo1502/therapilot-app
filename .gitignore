@@ -26,6 +26,10 @@ __pycache__
 *.pyc
 .pytest_cache
 
+# Claude Code local/scratch state
+.claude/settings.local.json
+.claude/worktrees/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
