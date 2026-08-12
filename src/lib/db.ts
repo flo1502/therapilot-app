@@ -35,6 +35,10 @@ export interface Patient {
   // Anamnese-Profil (additiv, aufgebaut aus Sessions 1–7)
   anamneseProfile?: import("./anamneseTypes").AnamneseProfile;
   anamneseUpdatedAt?: number;
+
+  // Psychotherapeutischer Befund (additiv), erzeugt aus Anamnese + Stundenprotokollen
+  psychotherapeutischerBefund?: import("../domains/reports/types").PsychotherapeutischerBefund;
+  befundUpdatedAt?: number;
 }
 
 export type SessionFormat = "SOAP" | "VT-Verlauf" | "Frei";
@@ -187,6 +191,13 @@ class TheraPilotDB extends Dexie {
     });
     // v7: additive – naechsteSchritteDone an der Session, keine neuen Indizes.
     this.version(7).stores({
+      patients: "id, updatedAt, active, approach, curriculumDiagnose",
+      sessions: "id, patientId, date, createdAt",
+      decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v8: additive – psychotherapeutischer Befund am Patient, keine neuen Indizes.
+    this.version(8).stores({
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",

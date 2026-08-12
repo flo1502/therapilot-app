@@ -5,7 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { pseudonymize } from "@/lib/pseudonymize";
 
-export type AiTask = "structure-session" | "personalize-slides" | "session-prep" | "suggest-slides" | "generate-stage-slides" | "kv-documentation" | "cbt-schema-analysis" | "depression-kpi-extract" | "anamnese-extract";
+export type AiTask = "structure-session" | "personalize-slides" | "session-prep" | "suggest-slides" | "generate-stage-slides" | "kv-documentation" | "cbt-schema-analysis" | "depression-kpi-extract" | "anamnese-extract" | "befund-generate";
 
 export interface SuggestedSlideRef {
   source: "template" | "deck";

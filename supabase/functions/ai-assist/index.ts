@@ -907,6 +907,141 @@ async function runAnamneseExtraction(apiKey: string, payload: any, pseudo?: stri
 }
 
 
+// ============== Psychotherapeutischer Befund ==============
+// Struktur laut prompts/befund.v1.md. Eingabe sind KEINE Rohtranskripte,
+// sondern bereits strukturierte Dokumente (AnamneseProfile + KVDocumentation[]).
+
+const BEFUND_TOOL = {
+  type: "function",
+  function: {
+    name: "return_befund",
+    description: "Liefert den psychotherapeutischen Befund in 5 Abschnitten.",
+    parameters: {
+      type: "object",
+      properties: {
+        anlass_der_behandlung: { type: "string" },
+        symptomatik: { type: "string" },
+        diagnose: {
+          type: "object",
+          properties: {
+            diagnosen: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  icd10_code: { type: "string", description: "Leer, wenn im Quellmaterial kein Code vorliegt." },
+                  bezeichnung: { type: "string" },
+                  diagnosesicherheit: { type: "string", enum: ["G", "V", "A", "Z"] },
+                  typ: { type: "string", enum: ["Hauptdiagnose", "Nebendiagnose"] },
+                },
+                required: ["icd10_code", "bezeichnung", "diagnosesicherheit", "typ"],
+                additionalProperties: false,
+              },
+            },
+            differentialdiagnosen: { type: "array", items: { type: "string" } },
+            freitext_einordnung: { type: "string" },
+          },
+          required: ["diagnosen", "differentialdiagnosen", "freitext_einordnung"],
+          additionalProperties: false,
+        },
+        psychopathologischer_befund: {
+          type: "object",
+          description: "AMDP-Kategorien. Jede Kategorie explizit befüllen (z.B. 'unauffällig'), nicht weglassen.",
+          properties: {
+            bewusstsein: { type: "string" },
+            orientierung: { type: "string" },
+            aufmerksamkeit_gedaechtnis: { type: "string" },
+            formales_denken: { type: "string" },
+            befuerchtungen_zwaenge: { type: "string" },
+            wahn: { type: "string" },
+            sinnestaeuschungen: { type: "string" },
+            ich_stoerungen: { type: "string" },
+            affektivitaet: { type: "string" },
+            antrieb_psychomotorik: { type: "string" },
+            zirkadiane_besonderheiten: { type: "string" },
+            andere_stoerungen: { type: "string" },
+            suizidalitaet: { type: "string", description: "Pflichtfeld. 'Suizidalität nicht exploriert.', wenn nirgends thematisiert." },
+            zusatzmerkmale: { type: "string" },
+          },
+          required: [
+            "bewusstsein", "orientierung", "aufmerksamkeit_gedaechtnis", "formales_denken",
+            "befuerchtungen_zwaenge", "wahn", "sinnestaeuschungen", "ich_stoerungen",
+            "affektivitaet", "antrieb_psychomotorik", "zirkadiane_besonderheiten",
+            "andere_stoerungen", "suizidalitaet", "zusatzmerkmale",
+          ],
+          additionalProperties: false,
+        },
+        therapieempfehlung: {
+          type: "object",
+          properties: {
+            verfahren: { type: "string" },
+            setting: { type: "string" },
+            frequenz: { type: "string" },
+            stundenkontingent_empfehlung: { type: "string", description: "Freitext, KEINE verbindliche Stundenzahl erfinden." },
+            prognose: { type: "string" },
+            weitere_empfehlungen: { type: "array", items: { type: "string" } },
+          },
+          required: ["verfahren", "setting", "frequenz", "stundenkontingent_empfehlung", "prognose", "weitere_empfehlungen"],
+          additionalProperties: false,
+        },
+      },
+      required: [
+        "anlass_der_behandlung", "symptomatik", "diagnose",
+        "psychopathologischer_befund", "therapieempfehlung",
+      ],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function runBefundGeneration(apiKey: string, payload: any, pseudo?: string) {
+  const anamneseProfile = payload?.anamneseProfile ?? null;
+  const kvDocumentations: any[] = Array.isArray(payload?.kvDocumentations) ? payload.kvDocumentations : [];
+
+  if (!anamneseProfile && kvDocumentations.length === 0) {
+    throw new Error("Weder Anamnese-Profil noch Stundenprotokolle vorhanden.");
+  }
+
+  const system =
+    "Du bist ein klinischer Dokumentations-Assistent für approbierte Psychotherapeut:innen in Deutschland. " +
+    "Du erstellst einen psychotherapeutischen Befund. Deine Eingabe ist NICHT ein rohes Transkript, sondern " +
+    "bereits strukturierte Dokumente: das Anamnese-Profil und die bisherigen Stundenprotokolle. Du fasst " +
+    "zusammen und formalisierst, du analysierst keine Rohdaten neu.\n\n" +
+    `Patient:in (pseudonymisiert): '${pseudo ?? "[PATIENT:IN]"}'. Verwende NIE einen Klarnamen.\n\n` +
+    "DIAGNOSE-REGEL (kritisch): Du erfindest KEINE Diagnose. Im Abschnitt 'diagnose' gibst du ausschließlich " +
+    "wieder, was bereits im Anamnese-Feld 'bewertungVorlaeufigeDiagnose' oder in den Feldern " +
+    "'verlauf_und_einschaetzung'/'aktuelle_symptomatik' der Stundenprotokolle als Einschätzung der " +
+    "Therapeut:in dokumentiert ist. Liegt dort nichts vor: icd10_code leer lassen, freitext_einordnung " +
+    "'Diagnostische Einschätzung steht noch aus.'\n\n" +
+    "PSYCHOPATHOLOGISCHER BEFUND: Strukturiert nach dem AMDP-System. JEDE Kategorie explizit befüllen " +
+    "(z.B. 'Unauffällig.' oder 'Kein Hinweis in den Quelldokumenten.'), niemals weglassen. suizidalitaet ist " +
+    "Pflichtfeld unabhängig von den übrigen Kategorien; wenn nirgends thematisiert: " +
+    "'Suizidalität nicht exploriert.'\n\n" +
+    "THERAPIEEMPFEHLUNG: stundenkontingent_empfehlung niemals mit einer erfundenen konkreten Stundenzahl " +
+    "befüllen, wenn im Quellmaterial keine genannt ist – dann allgemein formulieren " +
+    "(z.B. 'Umfang gemäß aktueller Psychotherapie-Richtlinie durch Therapeut:in festzulegen').\n\n" +
+    "STILREGELN: klinisch-neutral, knapp, indirekte Wiedergabe, keine direkte Rede/wörtlichen Zitate, keine " +
+    "wertenden Aussagen, keine Diagnose-/Prognose-Spekulation über das Quellmaterial hinaus. Nur Inhalte, die " +
+    "in Anamnese-Profil oder Stundenprotokollen bereits dokumentiert sind – bei Unsicherheit weglassen bzw. " +
+    "'nicht dokumentiert' statt raten.";
+
+  const userContent =
+    `ANAMNESE-PROFIL:\n${anamneseProfile ? JSON.stringify(anamneseProfile, null, 0).slice(0, 12000) : "(nicht vorhanden)"}\n\n` +
+    `STUNDENPROTOKOLLE (chronologisch, ${kvDocumentations.length} Stück):\n` +
+    `${kvDocumentations.length ? JSON.stringify(kvDocumentations, null, 0).slice(0, 16000) : "(keine vorhanden)"}\n\n` +
+    "Erstelle jetzt den psychotherapeutischen Befund in den 5 Abschnitten.";
+
+  return await callGateway(apiKey, "openai/gpt-5", {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userContent },
+    ],
+    tools: [BEFUND_TOOL],
+    tool_choice: { type: "function", function: { name: "return_befund" } },
+  });
+}
+
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -984,6 +1119,24 @@ Deno.serve(async (req: Request) => {
     if (task === "anamnese-extract") {
       try {
         const result = await runAnamneseExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
+                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        return new Response(JSON.stringify({ error: text }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+
+    // Spezial-Pfad: Psychotherapeutischer Befund
+    if (task === "befund-generate") {
+      try {
+        const result = await runBefundGeneration(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
