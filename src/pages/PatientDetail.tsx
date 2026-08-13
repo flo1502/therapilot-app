@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, FileText, Presentation, User, Activity, FileWarning } from "lucide-react";
+import { Plus, Pencil, FileText, User, Activity, FileWarning } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
 import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
@@ -16,7 +16,6 @@ export default function PatientDetail() {
   const { id } = useParams();
   const patient = useLiveQuery(() => (id ? db.patients.get(id) : undefined), [id]);
   const sessions = useLiveQuery(() => (id ? db.sessions.where("patientId").equals(id).reverse().sortBy("date") : Promise.resolve([])), [id]);
-  const decks = useLiveQuery(() => (id ? db.decks.where("patientId").equals(id).toArray() : Promise.resolve([])), [id]);
 
   if (!patient) return <div className="text-sm text-muted-foreground">Lade…</div>;
 
@@ -53,7 +52,6 @@ export default function PatientDetail() {
           <TabsTrigger value="verlauf"><Activity className="size-4 mr-2" />Therapieverlauf</TabsTrigger>
           <TabsTrigger value="befund"><FileWarning className="size-4 mr-2" />Befund</TabsTrigger>
           <TabsTrigger value="sessions"><FileText className="size-4 mr-2" />Sessions</TabsTrigger>
-          <TabsTrigger value="decks"><Presentation className="size-4 mr-2" />Slide-Decks</TabsTrigger>
         </TabsList>
 
         <TabsContent value="anamnese" className="mt-4">
@@ -99,27 +97,6 @@ export default function PatientDetail() {
           <div className="mt-3">
             <Button size="sm" variant="outline" asChild>
               <Link to={`/sessions/neu?patient=${patient.id}`}>+ Neue Session</Link>
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="decks" className="mt-4">
-          <Card>
-            <CardContent className="p-0 divide-y">
-              {(!decks || decks.length === 0) && (
-                <div className="p-5 text-sm text-muted-foreground">Noch keine personalisierten Decks.</div>
-              )}
-              {decks?.map(d => (
-                <Link key={d.id} to={`/slides/${d.id}`} className="block p-4 hover:bg-muted/50">
-                  <div className="font-medium text-sm">{d.title}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{d.slides.length} Slides · {formatDateTime(d.updatedAt)}</div>
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-          <div className="mt-3">
-            <Button size="sm" variant="outline" asChild>
-              <Link to={`/slides/neu?patient=${patient.id}`}>+ Neues Deck</Link>
             </Button>
           </div>
         </TabsContent>

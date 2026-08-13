@@ -4,15 +4,15 @@
 //   - Dexie-Hooks: lokale Schreibvorgänge automatisch in die Cloud pushen
 //     (nur wenn eingeloggt; sonst still lassen, UI toastet beim Versuch)
 //
-// Cloud-Tabellen patients/sessions/decks haben Spalten:
-//   id text, patient_id text (nur sessions/decks), data jsonb, updated_at bigint
+// Cloud-Tabellen patients/sessions haben Spalten:
+//   id text, patient_id text (nur sessions), data jsonb, updated_at bigint
 //
 // `data` enthält den vollständigen Dexie-Datensatz als JSON.
 
 import { supabase } from "@/integrations/supabase/client";
-import { db, type Patient, type SessionEntry, type SlideDeck } from "@/lib/db";
+import { db, type Patient, type SessionEntry } from "@/lib/db";
 
-type AnyRecord = Patient | SessionEntry | SlideDeck;
+type AnyRecord = Patient | SessionEntry;
 
 let initialized = false;
 let suppressPush = false; // verhindert Echo-Loops, wenn wir nach Pull/Realtime in Dexie schreiben
@@ -30,10 +30,9 @@ function withSuppress<T>(fn: () => Promise<T>): Promise<T> {
 // ---------- Pull (initial) ----------
 
 async function pullAll() {
-  const [pats, sess, deks] = await Promise.all([
+  const [pats, sess] = await Promise.all([
     supabase.from("patients").select("data"),
     supabase.from("sessions").select("data"),
-    supabase.from("decks").select("data"),
   ]);
 
   await withSuppress(async () => {
@@ -42,9 +41,6 @@ async function pullAll() {
     }
     if (sess.data?.length) {
       await db.sessions.bulkPut(sess.data.map((r: any) => r.data as SessionEntry));
-    }
-    if (deks.data?.length) {
-      await db.decks.bulkPut(deks.data.map((r: any) => r.data as SlideDeck));
     }
   });
 }
@@ -76,17 +72,6 @@ function subscribeRealtime() {
         }
       });
     })
-    .on("postgres_changes", { event: "*", schema: "public", table: "decks" }, async (payload) => {
-      await withSuppress(async () => {
-        if (payload.eventType === "DELETE") {
-          const oldId = (payload.old as any)?.id;
-          if (oldId) await db.decks.delete(oldId);
-        } else {
-          const row: any = payload.new;
-          if (row?.data) await db.decks.put(row.data as SlideDeck);
-        }
-      });
-    })
     .subscribe();
 }
 
@@ -111,16 +96,6 @@ export async function pushSession(s: SessionEntry) {
   });
 }
 
-export async function pushDeck(d: SlideDeck) {
-  if (!(await isAuthed())) return;
-  await supabase.from("decks").upsert({
-    id: d.id,
-    patient_id: d.patientId ?? null,
-    data: d as any,
-    updated_at: d.updatedAt ?? Date.now(),
-  });
-}
-
 export async function removePatient(id: string) {
   if (!(await isAuthed())) return;
   await supabase.from("patients").delete().eq("id", id);
@@ -128,10 +103,6 @@ export async function removePatient(id: string) {
 export async function removeSession(id: string) {
   if (!(await isAuthed())) return;
   await supabase.from("sessions").delete().eq("id", id);
-}
-export async function removeDeck(id: string) {
-  if (!(await isAuthed())) return;
-  await supabase.from("decks").delete().eq("id", id);
 }
 
 // ---------- Dexie-Hooks ----------
@@ -156,16 +127,6 @@ function attachDexieHooks() {
   db.sessions.hook("deleting", (pk) => {
     if (!suppressPush) removeSession(pk as string).catch(console.warn);
   });
-
-  db.decks.hook("creating", (_pk, obj) => {
-    if (!suppressPush) pushDeck(obj as SlideDeck).catch(console.warn);
-  });
-  db.decks.hook("updating", (_mods, _pk, obj) => {
-    if (!suppressPush) pushDeck(obj as SlideDeck).catch(console.warn);
-  });
-  db.decks.hook("deleting", (pk) => {
-    if (!suppressPush) removeDeck(pk as string).catch(console.warn);
-  });
 }
 
 // ---------- Public Init ----------
@@ -185,7 +146,7 @@ export async function initCloudSync() {
 /** Einmal-Migration: alle lokalen Datensätze in die Cloud hochladen.
  *  Decrypted Klarnamen/Notizen werden als plaintext in `name`/`notes` gespeichert,
  *  damit andere Browser sie sehen können. */
-export async function migrateLocalToCloud(): Promise<{ patients: number; sessions: number; decks: number }> {
+export async function migrateLocalToCloud(): Promise<{ patients: number; sessions: number }> {
   if (!(await isAuthed())) {
     throw new Error("Bitte zuerst einloggen.");
   }
@@ -193,7 +154,6 @@ export async function migrateLocalToCloud(): Promise<{ patients: number; session
 
   const patients = await db.patients.toArray();
   const sessions = await db.sessions.toArray();
-  const decks = await db.decks.toArray();
 
   // Klarnamen entschlüsseln und in plaintext name/notes übernehmen
   for (const p of patients) {
@@ -215,12 +175,7 @@ export async function migrateLocalToCloud(): Promise<{ patients: number; session
       sessions.map(s => ({ id: s.id, patient_id: s.patientId, data: s as any, updated_at: s.createdAt ?? Date.now() })),
     );
   }
-  if (decks.length) {
-    await supabase.from("decks").upsert(
-      decks.map(d => ({ id: d.id, patient_id: d.patientId ?? null, data: d as any, updated_at: d.updatedAt ?? Date.now() })),
-    );
-  }
 
   localStorage.setItem("therapilot.migrated", "true");
-  return { patients: patients.length, sessions: sessions.length, decks: decks.length };
+  return { patients: patients.length, sessions: sessions.length };
 }

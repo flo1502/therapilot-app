@@ -1,10 +1,9 @@
 # Therapilot
 
 AI-Assistent für Psychotherapeut:innen in Deutschland: strukturiert
-Sitzungen, führt die KV-Verlaufsdokumentation (7 Sektionen), generiert
-Berichte (10 Berichtsarten) und baut Slides für Patient:innen. Ziel:
-datenschutzkonform (DSGVO), langfristig mit lokalem LLM statt Cloud-AI
-für alles, was Patientendaten berührt.
+Sitzungen, führt die KV-Verlaufsdokumentation (7 Sektionen) und generiert
+Berichte (10 Berichtsarten). Ziel: datenschutzkonform (DSGVO), langfristig
+mit lokalem LLM statt Cloud-AI für alles, was Patientendaten berührt.
 
 ## Stack
 - Frontend: Vite + React + TypeScript + shadcn/ui + Tailwind, gebaut/gepflegt via Lovable
@@ -24,5 +23,5 @@ für alles, was Patientendaten berührt.
 
 ## Wichtig
 - Alles unter `src/` (außer `src/domains` sobald migriert) wird von Lovable synchronisiert — Änderungen dort landen direkt im Lovable-Projekt. Sei entsprechend vorsichtig mit größeren Refactors.
-- Patientendaten (`data-class: patient`) dürfen nicht ungeprüft an Cloud-Provider gehen — siehe `src/lib/pseudonymize.ts` und `src/lib/guardrails.ts` für bestehende Mechanismen, die in `lib/validation/` konsolidiert werden sollen.
+- Patientendaten (`data-class: patient`) dürfen nicht ungeprüft an Cloud-Provider gehen — siehe `src/lib/pseudonymize.ts` für den bestehenden Mechanismus, der in `lib/validation/` konsolidiert werden soll.
 - Aktuell existiert noch keine echte Migration von `src/pages`/`src/components`/`src/lib` in `src/domains` — das ist ein bewusst schrittweiser Prozess, kein Big-Bang-Rewrite.

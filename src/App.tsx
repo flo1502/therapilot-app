@@ -12,12 +12,6 @@ import PatientDetail from "./pages/PatientDetail";
 import SessionsList from "./pages/SessionsList";
 import SessionEdit from "./pages/SessionEdit";
 import SessionWizard from "./pages/SessionWizard";
-import TemplatesLibrary from "./pages/TemplatesLibrary";
-import TemplateDetail from "./pages/TemplateDetail";
-import SlidesList from "./pages/SlidesList";
-import SlideNew from "./pages/SlideNew";
-import SlideEditor from "./pages/SlideEditor";
-import SlidePresent from "./pages/SlidePresent";
 import Settings from "./pages/Settings";
 import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -41,12 +35,6 @@ const App = () => {
               <Route path="/sessions" element={<SessionsList />} />
               <Route path="/sessions/neu" element={<SessionWizard />} />
               <Route path="/sessions/:id" element={<SessionEdit />} />
-              <Route path="/templates" element={<TemplatesLibrary />} />
-              <Route path="/templates/:id" element={<TemplateDetail />} />
-              <Route path="/slides" element={<SlidesList />} />
-              <Route path="/slides/neu" element={<SlideNew />} />
-              <Route path="/slides/:id" element={<SlideEditor />} />
-              <Route path="/slides/:id/praesentieren" element={<SlidePresent />} />
               <Route path="/einstellungen" element={<Settings />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="*" element={<NotFound />} />

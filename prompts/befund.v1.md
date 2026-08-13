@@ -93,6 +93,17 @@ das JSON-Objekt.
    hinweg (nicht nur die letzte Sitzung), aggregiert aus Anamnese und
    Stundenprotokollen. Nur explizit Dokumentiertes, keine Interpretation.
 
+   **Umgang mit einmalig erwähnten Symptomen:** Ein Symptom, das nur in
+   einer frühen Sitzung genannt und in keiner späteren Sitzung erneut
+   angesprochen wurde, gilt NICHT automatisch als weiterhin bestehend —
+   Schweigen ist keine Bestätigung. Schreibe es nicht kommentarlos als
+   aktuell fort. Stattdessen: entweder mit Zeitbezug kennzeichnen (z. B.
+   "zu Beginn der Behandlung berichtet, in späteren Sitzungen nicht erneut
+   thematisiert") oder ganz weglassen, wenn der Zeitbezug den Satz
+   unnötig verkompliziert. Nur dann als uneingeschränkt aktuell
+   formulieren, wenn es auch in einer der jüngeren Sitzungen oder im
+   Anamnese-Profil bestätigt wurde.
+
 3. **diagnose** — Siehe Diagnose-Regel oben.
    - `diagnosen`: eine oder mehrere ICD-10-kodierte Diagnosen mit
      Diagnosesicherheit (G=gesichert, V=Verdacht auf, A=ausgeschlossen,

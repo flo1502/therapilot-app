@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, BookMarked, Presentation, Settings, LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ReactNode, useEffect, useState } from "react";
@@ -10,8 +10,6 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/patienten", label: "Patient:innen", icon: Users },
   { to: "/sessions", label: "Sessions", icon: FileText },
-  { to: "/templates", label: "Templates", icon: BookMarked },
-  { to: "/slides", label: "Slide-Decks", icon: Presentation },
   { to: "/einstellungen", label: "Einstellungen", icon: Settings },
 ];
 

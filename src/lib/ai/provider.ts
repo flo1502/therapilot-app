@@ -5,29 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { pseudonymize } from "@/lib/pseudonymize";
 
-export type AiTask = "structure-session" | "personalize-slides" | "session-prep" | "suggest-slides" | "generate-stage-slides" | "kv-documentation" | "cbt-schema-analysis" | "depression-kpi-extract" | "anamnese-extract" | "befund-generate";
-
-export interface SuggestedSlideRef {
-  source: "template" | "deck";
-  sourceId: string;
-  slideIndex: number;
-  reason: string;
-}
-
-export interface SuggestedSlides {
-  suggestions: SuggestedSlideRef[];
-}
-
-export interface CurriculumStageSlide {
-  title: string;
-  bullets: string[];
-  example?: string;
-  speaker_notes?: string;
-}
-
-export interface GeneratedStageSlides {
-  slides: CurriculumStageSlide[];
-}
+export type AiTask = "structure-session" | "session-prep" | "kv-documentation" | "cbt-schema-analysis" | "depression-kpi-extract" | "anamnese-extract" | "befund-generate";
 
 export interface AiRequest {
   task: AiTask;
@@ -42,27 +20,6 @@ export interface StructuredSession {
   plan: string;
   hausaufgabe?: string;
   naechsterFokus?: string;
-}
-
-export interface GeneratedSlide {
-  title: string;
-  layout?: "headline" | "model" | "vicious-cycle" | "before-after" | "steps" | "question" | "bullets";
-  iconKey?: string;
-  bullets: string[];
-  headline?: string;
-  subline?: string;
-  nodes?: { label: string; description?: string }[];
-  centerLabel?: string;
-  cycleNodes?: { label: string; description?: string }[];
-  before?: { title: string; items: string[] };
-  after?: { title: string; items: string[] };
-  steps?: { title: string; description?: string }[];
-  notes?: string;
-}
-
-export interface GeneratedDeck {
-  title: string;
-  slides: GeneratedSlide[];
 }
 
 function deepPseudonymize<T>(obj: T, pseudo?: string): T {

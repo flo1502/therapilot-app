@@ -1,5 +1,4 @@
 import Dexie, { Table } from "dexie";
-import type { ICDCode } from "./curriculumTypes";
 
 export type TherapyApproach = "KVT" | "ACT" | "Schematherapie" | "Tiefenpsych." | "Systemisch" | "Andere";
 
@@ -21,16 +20,6 @@ export interface Patient {
   goals: string;             // Therapieziele
   startDate?: string;
   active: boolean;
-
-  // Curriculum-bezogene Felder (optional, additive)
-  curriculumDiagnose?: ICDCode;          // primäre Diagnose für Curriculum-Mapping
-  beruf?: string;
-  triggers?: string[];                   // Auslöse-Situationen
-  hauptsymptome?: string[];
-  hauptangstGedanken?: string[];
-  vermeidungsVerhalten?: string[];
-  ressourcen?: string[];
-  lernstil?: "visuell" | "auditiv" | "kinästhetisch" | "lesen";
 
   // Anamnese-Profil (additiv, aufgebaut aus Sessions 1–7)
   anamneseProfile?: import("./anamneseTypes").AnamneseProfile;
@@ -77,61 +66,6 @@ export interface SessionEntry {
   naechsteSchritteDone?: string[];
 }
 
-export interface SlideDeck {
-  id: string;
-  patientId?: string;        // optional: personalisiert für Patient
-  templateId?: string;
-  title: string;
-  topic: string;
-  slides: Slide[];
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Therapie-spezifische Layout-Typen für visuell reichere Slides.
-// "bullets" ist der klassische Fallback. Alle anderen Layouts haben eigene
-// strukturierte Felder in `layoutData`. Der Renderer fällt bei fehlenden
-// Daten automatisch auf "bullets" zurück.
-export type SlideLayout =
-  | "bullets"
-  | "headline"        // Eine starke Hauptbotschaft
-  | "model"           // Modell-Diagramm (Knoten + Pfeile in einer Reihe)
-  | "vicious-cycle"   // Teufelskreis (4 Knoten im Kreis)
-  | "before-after"    // Vorher/Nachher Vergleich
-  | "steps"           // Schritt-für-Schritt-Übung
-  | "question"        // Reflexionsfrage mit großer Aufmachung
-  | "image";          // Visualisierungs-Bild (Psychoedukation, griffbereit)
-
-export interface SlideLayoutData {
-  // headline / question
-  headline?: string;
-  subline?: string;
-  // model
-  nodes?: { label: string; description?: string }[];
-  // vicious-cycle
-  centerLabel?: string;
-  cycleNodes?: { label: string; description?: string }[];
-  // before-after
-  before?: { title: string; items: string[] };
-  after?: { title: string; items: string[] };
-  // steps
-  steps?: { title: string; description?: string }[];
-  // image
-  imageSrc?: string;
-  imageAlt?: string;
-  imageCaption?: string;
-}
-
-export interface Slide {
-  id: string;
-  title: string;
-  bullets: string[];
-  notes?: string;
-  layout?: SlideLayout;
-  layoutData?: SlideLayoutData;
-  iconKey?: string; // Symbol-Key (siehe slideIcons.ts)
-}
-
 export interface AppSetting {
   key: string;
   value: any;
@@ -140,7 +74,6 @@ export interface AppSetting {
 class TheraPilotDB extends Dexie {
   patients!: Table<Patient, string>;
   sessions!: Table<SessionEntry, string>;
-  decks!: Table<SlideDeck, string>;
   settings!: Table<AppSetting, string>;
 
   constructor() {
@@ -201,6 +134,15 @@ class TheraPilotDB extends Dexie {
       patients: "id, updatedAt, active, approach, curriculumDiagnose",
       sessions: "id, patientId, date, createdAt",
       decks: "id, patientId, updatedAt",
+      settings: "key",
+    });
+    // v9: Slide-Decks-Feature entfernt – decks-Tabelle wird gedroppt, curriculumDiagnose-Index
+    // entfällt (Feld selbst existiert nicht mehr auf Patient). Bestehende lokale Deck-Daten
+    // gehen beim Upgrade verloren – bewusst, siehe CLAUDE.md-Historie.
+    this.version(9).stores({
+      patients: "id, updatedAt, active, approach",
+      sessions: "id, patientId, date, createdAt",
+      decks: null,
       settings: "key",
     });
   }

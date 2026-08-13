@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 const MODEL = "google/gemini-2.5-flash";
-const MODEL_SLIDES = "openai/gpt-5"; // Slide-Generierung profitiert stark von Reasoning
 
 function tool(name: string, description: string, parameters: any) {
   return { type: "function", function: { name, description, parameters } };
@@ -55,281 +54,6 @@ function buildRequest(task: string, payload: any, pseudo?: string) {
         ),
       ],
       tool_choice: { type: "function", function: { name: "return_structured_session" } },
-    };
-  }
-
-  if (task === "personalize-slides") {
-    const slideCount = payload.slideCount ?? 6;
-    return {
-      messages: [
-        { role: "system", content: baseSystem },
-        {
-          role: "user",
-          content:
-            `Erstelle ein psychoedukatives Slidedeck zum Thema "${payload.topic}" für eine:n Patient:in.\n\n` +
-            `Therapieansatz: ${payload.approach ?? "—"}.\n` +
-            `Patient:in (pseudonymisiert): Altersgruppe ${payload.ageGroup ?? "—"}, ` +
-            `Therapieziele: ${payload.goals ?? "—"}, Diagnosen: ${(payload.diagnoses ?? []).join(", ") || "—"}.\n` +
-            `Anzahl inhaltlicher Slides: ${slideCount}.\n\n` +
-            `WICHTIG – DIDAKTIK:\n` +
-            `• Vermeide reine Bullet-Wüsten. Nutze für jede Folie das passende Layout.\n` +
-            `• Layouts: "headline" (eine zentrale Botschaft, kurz & prägnant), "model" (3-5 Schlüsselbegriffe nebeneinander mit Kurzerklärung), ` +
-            `"vicious-cycle" (4 Knoten im Kreis – z.B. Auslöser → Gedanke → Körperreaktion → Verhalten), ` +
-            `"before-after" (Vorher/Nachher oder ungesund/gesund), "steps" (3-5 konkrete Schritte einer Übung), ` +
-            `"question" (Reflexionsfrage zum Innehalten), "bullets" (nur wenn nichts anderes passt, max. 4 Bullets).\n` +
-            `• Empfohlener Aufbau: Slide 1 "headline" (Einstieg), 1-2 "model" oder "vicious-cycle" (Erklärung), ` +
-            `1 "before-after" oder "steps" (Anwendung), 1 "question" (Reflexion).\n` +
-            `• Sprache: einfach, empathisch, deutsch, Sie-Form/neutral.\n` +
-            `• Texte kurz: Bullets max. 12 Wörter, Headlines max. 10 Wörter, Beschreibungen max. 15 Wörter.\n` +
-            `• Sprechernotizen ("notes") für die Therapeut:in ausführlicher.\n` +
-            `• Verwende für jede Folie einen passenden iconKey aus: ` +
-            `brain, heart, compass, breath, scale, lightbulb, target, leaf, sun, cycle, steps, question, shield, hands.\n\n` +
-            (payload.templateOutline
-              ? `Template-Orientierung (Inhalte anpassen, Layout neu wählen): ${JSON.stringify(payload.templateOutline)}`
-              : ""),
-        },
-      ],
-      tools: [
-        tool("return_deck", "Liefert ein didaktisch reiches Slidedeck.", {
-          type: "object",
-          properties: {
-            title: { type: "string", description: "Deck-Titel, max. 8 Wörter." },
-            slides: {
-              type: "array",
-              minItems: 3,
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string", description: "Slide-Titel, max. 8 Wörter." },
-                  layout: {
-                    type: "string",
-                    enum: ["headline", "model", "vicious-cycle", "before-after", "steps", "question", "bullets"],
-                  },
-                  iconKey: {
-                    type: "string",
-                    enum: ["brain", "heart", "compass", "breath", "scale", "lightbulb", "target", "leaf", "sun", "cycle", "steps", "question", "shield", "hands"],
-                  },
-                  bullets: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Bei layout='bullets': Hauptinhalte. Sonst: 1-3 Punkte als Kurz-Zusammenfassung/Fallback.",
-                  },
-                  headline: { type: "string", description: "Bei 'headline'/'question': zentrale Aussage." },
-                  subline: { type: "string", description: "Optionaler Untertitel." },
-                  nodes: {
-                    type: "array",
-                    description: "Bei 'model': 3-5 Knoten.",
-                    items: {
-                      type: "object",
-                      properties: { label: { type: "string" }, description: { type: "string" } },
-                      required: ["label"],
-                      additionalProperties: false,
-                    },
-                  },
-                  centerLabel: { type: "string", description: "Bei 'vicious-cycle': Begriff in der Mitte." },
-                  cycleNodes: {
-                    type: "array",
-                    description: "Bei 'vicious-cycle': genau 4 Knoten.",
-                    items: {
-                      type: "object",
-                      properties: { label: { type: "string" }, description: { type: "string" } },
-                      required: ["label"],
-                      additionalProperties: false,
-                    },
-                  },
-                  before: {
-                    type: "object",
-                    description: "Bei 'before-after': linke Seite.",
-                    properties: { title: { type: "string" }, items: { type: "array", items: { type: "string" } } },
-                    required: ["title", "items"],
-                    additionalProperties: false,
-                  },
-                  after: {
-                    type: "object",
-                    description: "Bei 'before-after': rechte Seite.",
-                    properties: { title: { type: "string" }, items: { type: "array", items: { type: "string" } } },
-                    required: ["title", "items"],
-                    additionalProperties: false,
-                  },
-                  steps: {
-                    type: "array",
-                    description: "Bei 'steps': 3-5 Schritte.",
-                    items: {
-                      type: "object",
-                      properties: { title: { type: "string" }, description: { type: "string" } },
-                      required: ["title"],
-                      additionalProperties: false,
-                    },
-                  },
-                  notes: { type: "string", description: "Sprechernotizen für Therapeut:in." },
-                },
-                required: ["title", "layout", "bullets"],
-                additionalProperties: false,
-              },
-            },
-          },
-          required: ["title", "slides"],
-          additionalProperties: false,
-        }),
-      ],
-      tool_choice: { type: "function", function: { name: "return_deck" } },
-    };
-  }
-
-  if (task === "suggest-slides") {
-    return {
-      messages: [
-        { role: "system", content: baseSystem },
-        {
-          role: "user",
-          content:
-            `Wähle die 2-3 für den aktuellen Behandlungsschritt am besten passenden Folien aus den verfügbaren Quellen aus. ` +
-            `Behandlungsschritt: "${payload.stepLabel}" — ${payload.stepDescription ?? ""}. ` +
-            `Therapieansatz: ${payload.approach ?? "—"}. ` +
-            `Therapieziele: ${payload.goals ?? "—"}. ` +
-            `Aktuelle Sitzungsnotiz (Auszug, pseudonymisiert): ${(payload.notesExcerpt ?? "").slice(0, 800)}\n\n` +
-            `Verfügbare Folien (Kandidaten):\n${JSON.stringify(payload.candidates ?? [], null, 0)}\n\n` +
-            `Gib genau 2-3 Vorschläge zurück. Bevorzuge personalisierte Patienten-Decks (source="deck") wenn vorhanden und passend.`,
-        },
-      ],
-      tools: [
-        tool("return_suggestions", "Liefert 2-3 Folien-Vorschläge.", {
-          type: "object",
-          properties: {
-            suggestions: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  source: { type: "string", enum: ["template", "deck"] },
-                  sourceId: { type: "string" },
-                  slideIndex: { type: "number" },
-                  reason: { type: "string", description: "Kurze fachliche Begründung (1 Satz)." },
-                },
-                required: ["source", "sourceId", "slideIndex", "reason"],
-                additionalProperties: false,
-              },
-            },
-          },
-          required: ["suggestions"],
-          additionalProperties: false,
-        }),
-      ],
-      tool_choice: { type: "function", function: { name: "return_suggestions" } },
-    };
-  }
-
-  if (task === "generate-stage-slides") {
-    // Curriculum-spezifische Slide-Generierung mit deutschem Spezial-Prompt
-    const { curriculum, stageConfig, patientInfo, sessionNotes } = payload ?? {};
-    const numSlides = stageConfig?.num_slides || stageConfig?.folienthemen?.length || 3;
-
-    const personalization = [
-      `- Name: ${patientInfo?.name ?? pseudo ?? "[PATIENT:IN]"}`,
-      patientInfo?.alter && `- Alter: ${patientInfo.alter}`,
-      patientInfo?.beruf && `- Beruf: ${patientInfo.beruf}`,
-      patientInfo?.triggers?.length && `- Trigger-Situationen: ${patientInfo.triggers.join(", ")}`,
-      patientInfo?.hauptsymptome?.length && `- Hauptsymptome: ${patientInfo.hauptsymptome.join(", ")}`,
-      patientInfo?.hauptangst_gedanken?.length && `- Angst-Gedanken: ${patientInfo.hauptangst_gedanken.join(", ")}`,
-      patientInfo?.vermeidungs_verhalten?.length && `- Vermeidung: ${patientInfo.vermeidungs_verhalten.join(", ")}`,
-      patientInfo?.ziele?.length && `- Therapieziele: ${patientInfo.ziele.join(", ")}`,
-      patientInfo?.lernstil && `- Lernstil: ${patientInfo.lernstil}`,
-    ].filter(Boolean).join("\n");
-
-    const stageBlock = `
-AKTUELLER BEHANDLUNGSKONTEXT:
-- Diagnose: ${curriculum?.name} (${curriculum?.diagnose})
-- Leitlinie: ${curriculum?.leitlinie}
-- Evidenzbasis: ${curriculum?.evidence_basis}
-- Aktuelles Stadium: ${stageConfig?.stadium} - ${stageConfig?.name}
-- Geplante Sitzungen: ${stageConfig?.sitzungen}
-
-LERNZIELE FÜR DIESES STADIUM:
-${(stageConfig?.lernziele ?? []).map((z: string, i: number) => `${i + 1}. ${z}`).join("\n")}
-
-ERFORDERLICHE INHALTE (alle müssen vorkommen!):
-${(stageConfig?.erforderliche_inhalte ?? []).map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}
-
-FOLIENTHEMEN:
-${(stageConfig?.folienthemen ?? []).map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}
-
-SPRACHE: ${stageConfig?.sprach_niveau}
-TONE: ${stageConfig?.tone}
-
-PATIENT-PERSONALISIERUNG (alle Folien personalisieren!):
-${personalization}
-
-BEISPIEL-STRUKTUR FÜR DIESES STADIUM:
-${(stageConfig?.beispiel_struktur ?? []).map((b: string) => `- ${b}`).join("\n")}
-
-DIDAKTISCHER HINWEIS:
-${stageConfig?.therapeut_notizen ?? ""}
-${sessionNotes?.trim() ? `\nSITZUNGS-NOTIZEN DES THERAPEUTEN:\n${sessionNotes}` : ""}
-`.trim();
-
-    const fullSystem = `Du bist ein spezialisierter KI-Assistent für Psychotherapeuten in Deutschland.
-SPEZIALISIERUNG: Strukturierte Psychoedukations-Folien nach DGPPN/DGPs-Leitlinien.
-EINSCHRÄNKUNGEN:
-- IMMER das Curriculum für das aktuelle Stadium befolgen
-- NIE Inhalte außerhalb des aktuellen Stadiums
-- NIE Behandlungsempfehlungen direkt an Patient:in
-- IMMER konkrete Fallbeispiele mit Patient-Bezug
-- NIE Fachjargon ohne einfache Erklärung
-- IMMER auf Deutsch (A1-A2, einfache Sprache)
-
-SPRACHE-REGELN:
-- Sätze max. 12 Wörter
-- Stichpunkte max. 15 Wörter
-- Aktive Verben, Du-Form
-- Konkret statt abstrakt
-
-THERAPEUTISCHE PRINZIPIEN:
-- Normalisierung, Hoffnung, Selbstwirksamkeit
-- Sokratische Methode statt Vorträge
-- Lebenswelt-Bezug (Beruf!) in Beispielen
-
-VERBOTENE FORMULIERUNGEN:
-"Sie haben eine Störung" → "Du erlebst Panik"
-"Das ist gefährlich" → "Das fühlt sich unangenehm an"
-"Pathologisch" → "Stärker als normal"
-
-Patient-Pseudonym: '${pseudo ?? "[PATIENT:IN]"}'.
-
-${stageBlock}
-
-OUTPUT: Erstelle EXAKT ${numSlides} Folien. Jede Folie hat: title, bullets (3-4), example, speaker_notes.
-Validiere selbst: Sind alle erforderlichen Inhalte enthalten? Ist personalisiert? Sind Beispiele konkret?`;
-
-    return {
-      messages: [
-        { role: "system", content: fullSystem },
-        { role: "user", content: `Generiere die ${numSlides} Folien jetzt.` },
-      ],
-      tools: [
-        tool("return_stage_slides", "Liefert curriculum-konforme Stadien-Folien.", {
-          type: "object",
-          properties: {
-            slides: {
-              type: "array",
-              minItems: 1,
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string", description: "Folientitel, max. 60 Zeichen." },
-                  bullets: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
-                  example: { type: "string", description: "Konkretes Beispiel mit Patient-Bezug." },
-                  speaker_notes: { type: "string", description: "Hinweise für Therapeut:in." },
-                },
-                required: ["title", "bullets", "example"],
-                additionalProperties: false,
-              },
-            },
-          },
-          required: ["slides"],
-          additionalProperties: false,
-        }),
-      ],
-      tool_choice: { type: "function", function: { name: "return_stage_slides" } },
     };
   }
 
@@ -1008,6 +732,11 @@ async function runBefundGeneration(apiKey: string, payload: any, pseudo?: string
     "bereits strukturierte Dokumente: das Anamnese-Profil und die bisherigen Stundenprotokolle. Du fasst " +
     "zusammen und formalisierst, du analysierst keine Rohdaten neu.\n\n" +
     `Patient:in (pseudonymisiert): '${pseudo ?? "[PATIENT:IN]"}'. Verwende NIE einen Klarnamen.\n\n` +
+    "SYMPTOMATIK: Ein Symptom, das nur in einer frühen Sitzung genannt und in keiner späteren Sitzung erneut " +
+    "angesprochen wurde, gilt NICHT automatisch als weiterhin bestehend – Schweigen ist keine Bestätigung. " +
+    "Nicht kommentarlos als aktuell fortschreiben, sondern entweder mit Zeitbezug kennzeichnen (z.B. 'zu Beginn " +
+    "berichtet, in späteren Sitzungen nicht erneut thematisiert') oder weglassen. Nur als uneingeschränkt " +
+    "aktuell formulieren, wenn auch in einer jüngeren Sitzung oder im Anamnese-Profil bestätigt.\n\n" +
     "DIAGNOSE-REGEL (kritisch): Du erfindest KEINE Diagnose. Im Abschnitt 'diagnose' gibst du ausschließlich " +
     "wieder, was bereits im Anamnese-Feld 'bewertungVorlaeufigeDiagnose' oder in den Feldern " +
     "'verlauf_und_einschaetzung'/'aktuelle_symptomatik' der Stundenprotokolle als Einschätzung der " +
@@ -1152,7 +881,7 @@ Deno.serve(async (req: Request) => {
 
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
-    const model = (task === "personalize-slides" || task === "generate-stage-slides") ? MODEL_SLIDES : MODEL;
+    const model = MODEL;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

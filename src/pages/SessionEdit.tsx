@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { ensureAuthed } from "@/lib/authGuard";
 import { Save } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { SessionSlidesPanel } from "@/components/SessionSlidesPanel";
 import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
 import { SchemaChatFeed } from "@/components/SchemaChatFeed";
 import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
@@ -90,7 +89,6 @@ export default function SessionEdit() {
           <TabsTrigger className="h-11 px-4 text-base" value="kv">Verhaltenstherapie-Verlauf</TabsTrigger>
           <TabsTrigger className="h-11 px-4 text-base" value="schemas">Denkmuster-Analyse</TabsTrigger>
           <TabsTrigger className="h-11 px-4 text-base" value="verlauf">Therapieverlauf</TabsTrigger>
-          <TabsTrigger className="h-11 px-4 text-base" value="slides">Folien</TabsTrigger>
         </TabsList>
 
 
@@ -137,18 +135,6 @@ export default function SessionEdit() {
             currentSessionId={s.id}
             currentTranscript={s.transcript ?? s.rawNotes ?? ""}
             patientPseudonym={s.patientId}
-          />
-        </TabsContent>
-
-
-
-
-        <TabsContent value="slides" className="mt-4">
-          <SessionSlidesPanel
-            patientId={s.patientId}
-            approach={allPatients?.find(p => p.id === s.patientId)?.approach}
-            goals={allPatients?.find(p => p.id === s.patientId)?.goals}
-            notesExcerpt={s.rawNotes}
           />
         </TabsContent>
       </Tabs>

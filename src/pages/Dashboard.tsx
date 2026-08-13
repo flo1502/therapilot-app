@@ -5,14 +5,13 @@ import { PreSessionCard } from "@/components/PreSessionCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Users, FileText, Presentation, Plus, ShieldCheck, ArrowRight } from "lucide-react";
+import { Users, FileText, Plus, ShieldCheck, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { postToN8nEvaluation } from "@/lib/n8n";
 
 export default function Dashboard() {
   const patients = useLiveQuery(() => db.patients.toArray(), []);
   const sessions = useLiveQuery(() => db.sessions.orderBy("date").reverse().limit(5).toArray(), []);
-  const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().limit(3).toArray(), []);
 
   const activePatients = patients?.filter(p => p.active).length ?? 0;
   const totalSessions = useLiveQuery(() => db.sessions.count(), []);
@@ -58,10 +57,9 @@ export default function Dashboard() {
 
       <PreSessionCard />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         <Stat icon={Users} label="Aktive Patient:innen" value={activePatients} to="/patienten" />
         <Stat icon={FileText} label="Sitzungen gesamt" value={totalSessions ?? 0} to="/sessions" />
-        <Stat icon={Presentation} label="Folien-Sammlungen" value={decks?.length ?? 0} to="/slides" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -91,8 +89,6 @@ export default function Dashboard() {
           <h2 className="text-xl mb-4">Schnellzugriff</h2>
           <div className="grid gap-3">
             <QuickLink to="/patienten/neu" title="Patient:in anlegen" desc="Pseudonym und Stammdaten erfassen" />
-            <QuickLink to="/templates" title="Vorlagen-Bibliothek" desc="Verhaltenstherapie, Akzeptanz-Therapie, Schematherapie, Psychoedukation" />
-            <QuickLink to="/slides/neu" title="Folien personalisieren" desc="Auf eine Person zugeschnitten, KI-gestützt" />
           </div>
         </section>
       </div>

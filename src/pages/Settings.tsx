@@ -20,7 +20,6 @@ export default function Settings() {
       exportedAt: new Date().toISOString(),
       patients: await db.patients.toArray(),
       sessions: await db.sessions.toArray(),
-      decks: await db.decks.toArray(),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -39,7 +38,6 @@ export default function Settings() {
       const data = JSON.parse(text);
       if (data.patients) await db.patients.bulkPut(data.patients);
       if (data.sessions) await db.sessions.bulkPut(data.sessions);
-      if (data.decks) await db.decks.bulkPut(data.decks);
       toast.success("Import abgeschlossen.");
     } catch {
       toast.error("Datei konnte nicht gelesen werden.");
@@ -51,7 +49,7 @@ export default function Settings() {
     setBusy(true);
     try {
       const res = await migrateLocalToCloud();
-      toast.success(`In Cloud übernommen: ${res.patients} Patient:innen, ${res.sessions} Sessions, ${res.decks} Decks.`);
+      toast.success(`In Cloud übernommen: ${res.patients} Patient:innen, ${res.sessions} Sessions.`);
     } catch (e: any) {
       toast.error(e?.message ?? "Migration fehlgeschlagen.");
     } finally {
@@ -61,10 +59,9 @@ export default function Settings() {
 
   const wipeAll = async () => {
     if (!confirm("WIRKLICH alle lokalen Daten unwiderruflich löschen?")) return;
-    if (!confirm("Letzte Warnung: alle Patient:innen, Sessions, Decks weg.")) return;
+    if (!confirm("Letzte Warnung: alle Patient:innen, Sessions weg.")) return;
     await db.patients.clear();
     await db.sessions.clear();
-    await db.decks.clear();
     toast.success("Alle Daten gelöscht.");
   };
 
@@ -93,7 +90,7 @@ export default function Settings() {
             <h3 className="text-lg">Demo-Modus: geteilte Cloud-Daten</h3>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Patient:innen, Sessions und Decks werden in der Lovable Cloud gespeichert und sind für <strong>jeden mit Link</strong> sichtbar.
+            Patient:innen und Sessions werden in der Lovable Cloud gespeichert und sind für <strong>jeden mit Link</strong> sichtbar.
             Nur eingeloggte Nutzer:innen können bearbeiten. <strong>Bitte nur Demo-/Fake-Daten verwenden – keine echten Patientendaten.</strong>
           </p>
         </CardContent></Card>
@@ -131,7 +128,7 @@ export default function Settings() {
             <h3 className="text-lg">Lokale Daten in Cloud übernehmen</h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            Lädt alle Patient:innen/Sessions/Decks, die nur in deinem Browser liegen, einmalig in die geteilte Cloud-DB hoch.
+            Lädt alle Patient:innen/Sessions, die nur in deinem Browser liegen, einmalig in die geteilte Cloud-DB hoch.
             Verschlüsselte Klarnamen/Notizen werden entschlüsselt und als Klartext gespeichert.
           </p>
           {isAuthed ? (
