@@ -1,5 +1,5 @@
 // AI-Provider Abstraktion.
-// Phase 1: Lovable AI Gateway via Edge Function.
+// Phase 1: Anthropic API via Edge Function.
 // Phase 2 (später): Lokales Ollama – gleiche Schnittstelle.
 
 import { supabase } from "@/integrations/supabase/client";

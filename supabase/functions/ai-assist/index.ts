@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "claude-sonnet-5";
 
 function tool(name: string, description: string, parameters: any) {
   return { type: "function", function: { name, description, parameters } };
@@ -182,36 +182,60 @@ const KV_COMPOSE_TOOL = {
   },
 };
 
-async function callGateway(apiKey: string, model: string, body: any): Promise<any> {
-  const fallbacks = model !== "google/gemini-2.5-pro" ? [model, "google/gemini-2.5-pro"] : [model];
+// Übersetzt die bestehenden OpenAI-Tool-Schemas (type:"function", function:{...})
+// auf Anthropics Messages-API-Form und ruft diese direkt auf — ersetzt den
+// vormaligen Lovable-AI-Gateway-Call. Rückgabewert bleibt unverändert das
+// geparste Tool-Input-Objekt, damit alle Aufrufer (runKVDocumentation etc.)
+// unverändert bleiben können.
+async function callAnthropic(apiKey: string, model: string, body: any): Promise<any> {
+  const systemMsg = (body.messages ?? []).find((m: any) => m.role === "system")?.content ?? "";
+  const messages = (body.messages ?? [])
+    .filter((m: any) => m.role !== "system")
+    .map((m: any) => ({ role: m.role, content: m.content }));
+
+  const tools = (body.tools ?? []).map((t: any) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: t.function.parameters,
+  }));
+  const forcedName = body.tool_choice?.function?.name;
+
   let lastStatus = 0;
   let lastBody = "";
-  for (const m of fallbacks) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: m, ...body }),
-      });
-      if (resp.status === 429) throw new Error("RATE_LIMIT");
-      if (resp.status === 402) throw new Error("PAYMENT_REQUIRED");
-      if (resp.ok) {
-        const data = await resp.json();
-        const call = data.choices?.[0]?.message?.tool_calls?.[0];
-        if (!call?.function?.arguments) throw new Error("Keine strukturierte Antwort.");
-        return JSON.parse(call.function.arguments);
-      }
-      lastStatus = resp.status;
-      lastBody = await resp.text();
-      console.error(`AI-Gateway Fehler (model=${m}, attempt=${attempt + 1}):`, resp.status, lastBody);
-      if (resp.status >= 500 && resp.status < 600) {
-        await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
-        continue;
-      }
-      break;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 8192,
+        system: systemMsg,
+        messages,
+        tools,
+        ...(forcedName ? { tool_choice: { type: "tool", name: forcedName } } : {}),
+      }),
+    });
+    if (resp.status === 429) throw new Error("RATE_LIMIT");
+    if (resp.ok) {
+      const data = await resp.json();
+      const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use");
+      if (!toolUse?.input) throw new Error("Keine strukturierte Antwort.");
+      return toolUse.input;
     }
+    lastStatus = resp.status;
+    lastBody = await resp.text();
+    console.error(`Anthropic API Fehler (model=${model}, attempt=${attempt + 1}):`, resp.status, lastBody);
+    if (resp.status >= 500 || resp.status === 529) {
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+      continue;
+    }
+    break;
   }
-  throw new Error(`AI-Gateway Fehler (${lastStatus})`);
+  throw new Error(`Anthropic API Fehler (${lastStatus}): ${lastBody.slice(0, 300)}`);
 }
 
 async function runKVDocumentation(apiKey: string, payload: any, pseudo?: string) {
@@ -240,7 +264,7 @@ REGELN:
 - Vereinbarungen umfassen Hausaufgaben, nächste Sitzung, Absprachen.
 - Knapp und neutral formulieren.`;
 
-  const extract = await callGateway(apiKey, "google/gemini-2.5-pro", {
+  const extract = await callAnthropic(apiKey, "claude-sonnet-5", {
     messages: [
       { role: "system", content: extractSystem },
       {
@@ -283,7 +307,7 @@ STIL-REGELN (kritisch!):
 - administrative_hinweise: nur ausfüllen, wenn im Transkript/Kontext tatsächlich etwas mit Fristen oder Formalia genannt wurde (z. B. Antrag läuft aus, Verlängerung nötig, Bericht fällig). Nichts erfinden – sonst leer lassen ("").
 ${previousErrors.length ? `\nVORHERIGER VERSUCH HATTE FEHLER – BITTE BEHEBEN:\n${previousErrors.map((e) => `- ${e}`).join("\n")}` : ""}`;
 
-  const documentation = await callGateway(apiKey, "openai/gpt-5", {
+  const documentation = await callAnthropic(apiKey, "claude-opus-5", {
     messages: [
       { role: "system", content: composeSystem },
       {
@@ -384,7 +408,7 @@ async function runSchemaAnalysis(apiKey: string, payload: any, pseudo?: string) 
     "8. chat_preview: kurz, scannable, Therapeut-Inbox-Stil (z.B. '💬 3 neue Hinweise auf Selbstwert-Schema').\n\n" +
     "Wenn das Transkript keinerlei Evidenz enthält: leeres Array zurückgeben.";
 
-  return await callGateway(apiKey, "google/gemini-2.5-pro", {
+  return await callAnthropic(apiKey, "claude-sonnet-5", {
     messages: [
       { role: "system", content: system },
       { role: "user", content: `Transkript:\n${transcript}` },
@@ -504,7 +528,7 @@ async function runKPIExtraction(apiKey: string, payload: any, pseudo?: string) {
     "8. depressionSeverity: Gesamteindruck 0-100, grob an PHQ-9-Logik. Verlaufs-Indikator, KEINE Diagnose.\n" +
     "9. notes: 1-2 Sätze neutrale Begründung.";
 
-  return await callGateway(apiKey, "google/gemini-2.5-pro", {
+  return await callAnthropic(apiKey, "claude-sonnet-5", {
     messages: [
       { role: "system", content: system },
       { role: "user", content: `Sitzungs-Transkript:\n${transcript}` },
@@ -620,7 +644,7 @@ async function runAnamneseExtraction(apiKey: string, payload: any, pseudo?: stri
     `SITZUNGS-NR: ${sessionNr ?? "—"} · SESSION-ID: ${sessionId}\n\n` +
     `TRANSKRIPT:\n${transcript}`;
 
-  return await callGateway(apiKey, "google/gemini-2.5-pro", {
+  return await callAnthropic(apiKey, "claude-sonnet-5", {
     messages: [
       { role: "system", content: system },
       { role: "user", content: userContent },
@@ -760,7 +784,7 @@ async function runBefundGeneration(apiKey: string, payload: any, pseudo?: string
     `${kvDocumentations.length ? JSON.stringify(kvDocumentations, null, 0).slice(0, 16000) : "(keine vorhanden)"}\n\n` +
     "Erstelle jetzt den psychotherapeutischen Befund in den 5 Abschnitten.";
 
-  return await callGateway(apiKey, "openai/gpt-5", {
+  return await callAnthropic(apiKey, "claude-opus-5", {
     messages: [
       { role: "system", content: system },
       { role: "user", content: userContent },
@@ -778,13 +802,13 @@ Deno.serve(async (req: Request) => {
     const { task, payload, patientPseudonym } = await req.json();
     if (!task) throw new Error("task fehlt");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY fehlt");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY fehlt");
 
     // Spezial-Pfad: KV-Verlaufsdokumentation (zwei sequentielle LLM-Calls)
     if (task === "kv-documentation") {
       try {
-        const result = await runKVDocumentation(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        const result = await runKVDocumentation(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -793,10 +817,6 @@ Deno.serve(async (req: Request) => {
         if (msg === "RATE_LIMIT") {
           return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        if (msg === "PAYMENT_REQUIRED") {
-          return new Response(JSON.stringify({ error: "AI-Guthaben aufgebraucht. Bitte in Lovable Workspace aufladen." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         return new Response(JSON.stringify({ error: msg }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -806,7 +826,7 @@ Deno.serve(async (req: Request) => {
     // Spezial-Pfad: CBT-Schema-Analyse
     if (task === "cbt-schema-analysis") {
       try {
-        const result = await runSchemaAnalysis(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        const result = await runSchemaAnalysis(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -815,10 +835,6 @@ Deno.serve(async (req: Request) => {
         if (msg === "RATE_LIMIT") {
           return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        if (msg === "PAYMENT_REQUIRED") {
-          return new Response(JSON.stringify({ error: "AI-Guthaben aufgebraucht." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         return new Response(JSON.stringify({ error: msg }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -829,15 +845,14 @@ Deno.serve(async (req: Request) => {
     // Spezial-Pfad: Depression KPI Extraction
     if (task === "depression-kpi-extract") {
       try {
-        const result = await runKPIExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        const result = await runKPIExtraction(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e: any) {
         const msg = e?.message ?? "Unbekannt";
-        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
-        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
-                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        const status = msg === "RATE_LIMIT" ? 429 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." : msg;
         return new Response(JSON.stringify({ error: text }),
           { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -847,15 +862,14 @@ Deno.serve(async (req: Request) => {
     // Spezial-Pfad: Anamnese-Extraktion (VT-Bögen 1–3)
     if (task === "anamnese-extract") {
       try {
-        const result = await runAnamneseExtraction(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        const result = await runAnamneseExtraction(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e: any) {
         const msg = e?.message ?? "Unbekannt";
-        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
-        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
-                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        const status = msg === "RATE_LIMIT" ? 429 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." : msg;
         return new Response(JSON.stringify({ error: text }),
           { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -865,15 +879,14 @@ Deno.serve(async (req: Request) => {
     // Spezial-Pfad: Psychotherapeutischer Befund
     if (task === "befund-generate") {
       try {
-        const result = await runBefundGeneration(LOVABLE_API_KEY, payload ?? {}, patientPseudonym);
+        const result = await runBefundGeneration(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e: any) {
         const msg = e?.message ?? "Unbekannt";
-        const status = msg === "RATE_LIMIT" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
-        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." :
-                     msg === "PAYMENT_REQUIRED" ? "AI-Guthaben aufgebraucht." : msg;
+        const status = msg === "RATE_LIMIT" ? 429 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." : msg;
         return new Response(JSON.stringify({ error: text }),
           { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -881,47 +894,24 @@ Deno.serve(async (req: Request) => {
 
 
     const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
-    const model = MODEL;
-
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, ...reqBody }),
-    });
-
-    if (resp.status === 429) {
-      return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }), {
-        status: 429,
+    try {
+      const parsed = await callAnthropic(ANTHROPIC_API_KEY, MODEL, reqBody);
+      return new Response(JSON.stringify(parsed), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-    if (resp.status === 402) {
-      return new Response(JSON.stringify({ error: "AI-Guthaben aufgebraucht. Bitte in Lovable Workspace aufladen." }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (!resp.ok) {
-      const t = await resp.text();
-      console.error("AI-Gateway Fehler:", resp.status, t);
-      return new Response(JSON.stringify({ error: "AI-Gateway Fehler" }), {
+    } catch (e: any) {
+      const msg = e?.message ?? "Unbekannt";
+      if (msg === "RATE_LIMIT") {
+        return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: msg }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const data = await resp.json();
-    const call = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!call?.function?.arguments) {
-      return new Response(JSON.stringify({ error: "Keine strukturierte Antwort." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const parsed = JSON.parse(call.function.arguments);
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
     console.error("ai-assist Fehler:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unbekannt" }), {

@@ -30,6 +30,9 @@ __pycache__
 .claude/settings.local.json
 .claude/worktrees/
 
+# Supabase CLI local cache
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

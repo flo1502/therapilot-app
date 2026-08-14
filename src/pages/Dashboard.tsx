@@ -97,7 +97,7 @@ export default function Dashboard() {
         <ShieldCheck className="size-4 mt-0.5 shrink-0 text-primary" />
         <p>
           <span className="text-foreground font-medium">Prototyp-Modus:</span> KI-Anfragen laufen aktuell
-          pseudonymisiert über das Lovable AI Gateway. Für den DSGVO-konformen Echteinsatz wechseln Sie in
+          pseudonymisiert direkt über die Anthropic API. Für den DSGVO-konformen Echteinsatz wechseln Sie in
           Phase 2 auf ein lokales Sprachmodell (Ollama) – dieselbe Oberfläche, keine Cloud-Anfragen.
         </p>
       </div>

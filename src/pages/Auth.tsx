@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,29 +39,11 @@ export default function AuthPage() {
     toast.success("Konto erstellt. Prüfe ggf. dein E-Mail-Postfach.");
   };
 
-  const google = async () => {
-    setBusy(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (result.error) { toast.error("Google-Login fehlgeschlagen."); return; }
-      if (result.redirected) return;
-      nav("/");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <>
       <PageHeader title="Login" description="Eingeloggte Nutzer:innen können Patient:innen und Sessions bearbeiten. Lesezugriff ist öffentlich." />
       <Card className="max-w-md mx-auto">
         <CardContent className="p-6">
-          <Button variant="outline" className="w-full mb-4" onClick={google} disabled={busy}>
-            Mit Google fortfahren
-          </Button>
-          <div className="text-center text-xs text-muted-foreground mb-4">oder mit E-Mail</div>
           <Tabs defaultValue="signin">
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="signin">Einloggen</TabsTrigger>
