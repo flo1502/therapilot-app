@@ -13,7 +13,6 @@ import { Save } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
 import { SchemaChatFeed } from "@/components/SchemaChatFeed";
-import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -88,7 +87,6 @@ export default function SessionEdit() {
         <TabsList className="h-auto flex-wrap gap-1 p-1.5">
           <TabsTrigger className="h-11 px-4 text-base" value="kv">Verhaltenstherapie-Verlauf</TabsTrigger>
           <TabsTrigger className="h-11 px-4 text-base" value="schemas">Denkmuster-Analyse</TabsTrigger>
-          <TabsTrigger className="h-11 px-4 text-base" value="verlauf">Therapieverlauf</TabsTrigger>
         </TabsList>
 
 
@@ -125,16 +123,6 @@ export default function SessionEdit() {
               setS(updated);
               db.sessions.put(updated);
             }}
-          />
-        </TabsContent>
-
-
-        <TabsContent value="verlauf" className="mt-4">
-          <TherapieverlaufDashboard
-            patientId={s.patientId}
-            currentSessionId={s.id}
-            currentTranscript={s.transcript ?? s.rawNotes ?? ""}
-            patientPseudonym={s.patientId}
           />
         </TabsContent>
       </Tabs>

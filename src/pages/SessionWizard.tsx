@@ -15,16 +15,15 @@ import { KVDocumentationResult } from "@/lib/kvDocTypes";
 import { validateKVDocumentation } from "@/lib/kvGuardrails";
 import {
   ArrowLeft, ArrowRight, Mic, MicOff, PenLine, Upload, Sparkles, CheckCircle2,
-  Info, CalendarClock, UserRound, FileText, Brain, LineChart, Wand2,
+  Info, CalendarClock, UserRound, FileText, Brain, Wand2,
 } from "lucide-react";
 
 type Method = "dictate" | "type" | "upload";
-type DocType = "kv" | "schemas" | "verlauf";
+type DocType = "kv" | "schemas";
 
 const DOC_TYPES: { key: DocType; title: string; desc: string; abbr: string; icon: any }[] = [
   { key: "kv", title: "Verhaltenstherapie-Verlauf", desc: "Für den klassischen Bericht an die Krankenkasse.", abbr: "Fachbegriff: VT-Verlauf / KV-Dokumentation", icon: FileText },
   { key: "schemas", title: "Denkmuster-Analyse", desc: "Erkennt wiederkehrende Grundüberzeugungen aus dem Gespräch.", abbr: "Fachbegriff: CBT-Schemata", icon: Brain },
-  { key: "verlauf", title: "Therapieverlauf-Auswertung", desc: "Zeigt Entwicklung über mehrere Sitzungen hinweg.", abbr: "Fachbegriff: KPI-Dashboard / Depression Recovery Index", icon: LineChart },
 ];
 
 function parseSubtitleFormat(text: string): string {

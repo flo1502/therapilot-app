@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, FileText, User, Activity, FileWarning } from "lucide-react";
+import { Plus, Pencil, FileText, User, FileWarning } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
-import { TherapieverlaufDashboard } from "@/components/TherapieverlaufDashboard";
 import { BefundPanel } from "@/domains/reports/components/BefundPanel";
 
 export default function PatientDetail() {
@@ -49,17 +48,12 @@ export default function PatientDetail() {
       <Tabs defaultValue="anamnese" className="w-full">
         <TabsList>
           <TabsTrigger value="anamnese"><User className="size-4 mr-2" />Anamnese-Profil</TabsTrigger>
-          <TabsTrigger value="verlauf"><Activity className="size-4 mr-2" />Therapieverlauf</TabsTrigger>
           <TabsTrigger value="befund"><FileWarning className="size-4 mr-2" />Befund</TabsTrigger>
           <TabsTrigger value="sessions"><FileText className="size-4 mr-2" />Sessions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="anamnese" className="mt-4">
           <AnamneseProfilePanel patientId={patient.id} patientPseudonym={patient.id} />
-        </TabsContent>
-
-        <TabsContent value="verlauf" className="mt-4">
-          <TherapieverlaufDashboard patientId={patient.id} patientPseudonym={patient.id} />
         </TabsContent>
 
         <TabsContent value="befund" className="mt-4">
