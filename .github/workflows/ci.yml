@@ -1,0 +1,38 @@
+name: CI
+
+# Läuft bei jeder Änderung – auch bei reinen Frontend-Commits, die das
+# Backend-Deploy nicht auslösen. Typecheck und Tests sind blockierend,
+# der Linter meldet vorerst nur (siehe Hinweis unten).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Tests
+        run: npx vitest run
+
+      # Der Bestand hat aktuell mehrere hundert Lint-Meldungen (überwiegend
+      # `no-explicit-any`). Blockierend geschaltet wäre dieser Schritt ab Tag
+      # eins rot und würde deaktiviert. Er läuft deshalb sichtbar mit, ohne
+      # den Lauf zu stoppen – und kann scharf gestellt werden, sobald die
+      # Zahl abgearbeitet ist.
+      - name: Lint (nur Bericht, blockiert nicht)
+        run: npx eslint . || true

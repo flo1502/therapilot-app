@@ -8,6 +8,7 @@ import {
   SessionBriefing,
   briefingBasisKey,
   briefingSettingsKey,
+  selectBriefingSessions,
 } from "../types";
 
 /**
@@ -33,15 +34,15 @@ export function useSessionBriefing(patientId: string | undefined) {
     [cacheKey],
   );
 
-  /** Die letzten bis zu 3 dokumentierten Sitzungen, neueste zuerst. */
+  /** Die letzten bis zu 3 dokumentierten Sitzungen dieser Person, neueste zuerst. */
   const basisSessions = useLiveQuery(
     async () => {
       if (!patientId) return [];
       const all = await db.sessions.where("patientId").equals(patientId).toArray();
-      return all
-        .filter((s) => s.kvDocumentation)
-        .sort((a, b) => b.date - a.date)
-        .slice(0, BRIEFING_SESSION_COUNT);
+      // Die Auswahl liegt bewusst in selectBriefingSessions statt in der Abfrage:
+      // dort ist sie getestet, und die Filterung auf die Person passiert
+      // unabhängig davon nochmals explizit.
+      return selectBriefingSessions(all, patientId);
     },
     [patientId],
     [],

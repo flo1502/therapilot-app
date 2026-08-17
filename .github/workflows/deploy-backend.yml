@@ -12,7 +12,30 @@ on:
       - ".github/workflows/deploy-backend.yml"
 
 jobs:
+  # Eigenes Gate vor dem Deploy: CI läuft zwar ohnehin bei jedem Push, aber ein
+  # Deploy soll auch dann nicht durchgehen, wenn dieser Workflow einmal isoliert
+  # ausgelöst wird. Die drei Schritte sind bewusst dieselben wie in ci.yml.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Tests
+        run: npx vitest run
+
   deploy:
+    needs: verify
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

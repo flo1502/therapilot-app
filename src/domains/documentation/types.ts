@@ -38,6 +38,37 @@ export interface SessionBriefing {
   hinweis_datenlage: string;
 }
 
+/** Das Nötigste, was eine Sitzung mitbringen muss, um fürs Briefing in Frage zu kommen. */
+export interface BriefingCandidate {
+  id: string;
+  patientId: string;
+  date: number;
+  kvDocumentation?: unknown;
+  kvValidation?: { generatedAt: number };
+}
+
+/**
+ * Wählt die Sitzungen aus, die ins Briefing einfließen: die neuesten
+ * BRIEFING_SESSION_COUNT Sitzungen **dieser einen Patient:in**, die bereits
+ * eine KV-Verlaufsdokumentation besitzen.
+ *
+ * Die Filterung auf die Person ist sicherheitsrelevant — eine Praxis
+ * dokumentiert mehrere Personen am Tag, und ein Briefing aus fremden Sitzungen
+ * wäre ein klinischer Fehler, kein Anzeigefehler. Deshalb liegt die Auswahl
+ * hier als reine Funktion und nicht in der Datenbankabfrage.
+ */
+export function selectBriefingSessions<T extends BriefingCandidate>(
+  sessions: readonly T[],
+  patientId: string,
+): T[] {
+  return sessions
+    .filter((s) => s.patientId === patientId)
+    .filter((s) => s.kvDocumentation)
+    .slice()
+    .sort((a, b) => b.date - a.date)
+    .slice(0, BRIEFING_SESSION_COUNT);
+}
+
 /**
  * Signatur der Sitzungen, aus denen ein Briefing erzeugt wurde. Ändert sich
  * die Signatur (neue Sitzung dokumentiert, bestehende KV-Doku überarbeitet),
