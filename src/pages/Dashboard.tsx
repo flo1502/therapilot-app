@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, FileText, Plus, ShieldCheck, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import { postToN8nEvaluation } from "@/lib/n8n";
 
 export default function Dashboard() {
   const patients = useLiveQuery(() => db.patients.toArray(), []);
@@ -14,19 +12,6 @@ export default function Dashboard() {
 
   const activePatients = patients?.filter(p => p.active).length ?? 0;
   const totalSessions = useLiveQuery(() => db.sessions.count(), []);
-
-  const sentRef = useRef(false);
-  useEffect(() => {
-    if (sentRef.current || !sessions || sessions.length === 0) return;
-    sentRef.current = true;
-    const latest = sessions[0];
-    if (!latest.transcript || latest.transcript.trim().length === 0) return;
-    postToN8nEvaluation({
-      text: latest.transcript,
-      evaluationType: latest.format ?? "Verhaltenstherapie-Verlauf",
-    });
-  }, [sessions]);
-
 
   return (
     <div className="max-w-5xl mx-auto pb-16">

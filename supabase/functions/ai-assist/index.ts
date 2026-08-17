@@ -7,87 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "claude-sonnet-5";
-
-function tool(name: string, description: string, parameters: any) {
-  return { type: "function", function: { name, description, parameters } };
-}
-
-function buildRequest(task: string, payload: any, pseudo?: string) {
-  const baseSystem =
-    "Du bist ein klinischer Assistent für approbierte Psycholog:innen in Deutschland. " +
-    "Antworte präzise, fachlich, in deutscher Sprache. " +
-    "Stelle KEINE Diagnosen, gib keine medizinischen Anweisungen an Patient:innen direkt. " +
-    "Du arbeitest ausschließlich mit pseudonymisierten Daten. Verwende immer den Platzhalter " +
-    `'${pseudo ?? "[PATIENT:IN]"}' statt eines Namens.`;
-
-  if (task === "structure-session") {
-    return {
-      messages: [
-        { role: "system", content: baseSystem },
-        {
-          role: "user",
-          content:
-            `Strukturiere die folgenden Roh-Sitzungsnotizen im Format ${payload.format ?? "SOAP"}. ` +
-            `Therapieansatz: ${payload.approach ?? "unbekannt"}. ` +
-            `Therapieziel(e): ${payload.goals ?? "—"}.\n\n` +
-            `Roh-Notiz:\n${payload.rawNotes ?? ""}`,
-        },
-      ],
-      tools: [
-        tool(
-          "return_structured_session",
-          "Liefert die strukturierte Sitzungsdokumentation.",
-          {
-            type: "object",
-            properties: {
-              subjektiv: { type: "string", description: "Subjektives Erleben des:der Patient:in." },
-              objektiv: { type: "string", description: "Beobachtungen der Therapeut:in (Affekt, Verhalten, Mimik)." },
-              assessment: { type: "string", description: "Fachliche Einschätzung, Hypothesen, Verlauf." },
-              plan: { type: "string", description: "Plan für nächste Schritte / Sitzung." },
-              hausaufgabe: { type: "string", description: "Konkrete therapeutische Hausaufgabe." },
-              naechsterFokus: { type: "string", description: "Vorgeschlagener Fokus der Folgesitzung." },
-            },
-            required: ["subjektiv", "objektiv", "assessment", "plan"],
-            additionalProperties: false,
-          },
-        ),
-      ],
-      tool_choice: { type: "function", function: { name: "return_structured_session" } },
-    };
-  }
-
-  if (task === "session-prep") {
-    return {
-      messages: [
-        { role: "system", content: baseSystem },
-        {
-          role: "user",
-          content:
-            `Schlage eine Sitzungsvorbereitung vor. Therapieansatz: ${payload.approach ?? "—"}. ` +
-            `Therapieziele: ${payload.goals ?? "—"}. ` +
-            `Letzte Sitzung (strukturiert): ${payload.lastStructured ?? "Keine Vorinfo."}`,
-        },
-      ],
-      tools: [
-        tool("return_prep", "Liefert Vorschläge zur Sitzungsvorbereitung.", {
-          type: "object",
-          properties: {
-            agenda: { type: "array", items: { type: "string" } },
-            interventionsvorschlaege: { type: "array", items: { type: "string" } },
-            checkInFragen: { type: "array", items: { type: "string" } },
-          },
-          required: ["agenda", "interventionsvorschlaege", "checkInFragen"],
-          additionalProperties: false,
-        }),
-      ],
-      tool_choice: { type: "function", function: { name: "return_prep" } },
-    };
-  }
-
-  throw new Error("Unbekannte Task: " + task);
-}
-
 // ============== KV-Verlaufsdokumentation (2-Pass: Extract -> Compose) ==============
 
 const KV_EXTRACT_TOOL = {
@@ -417,127 +336,6 @@ async function runSchemaAnalysis(apiKey: string, payload: any, pseudo?: string) 
     tool_choice: { type: "function", function: { name: "return_schema_analysis" } },
   });
 }
-
-// ============== Depression KPI Extraction ==============
-
-const KPI_TOOL = {
-  type: "function",
-  function: {
-    name: "return_session_kpis",
-    description: "Extrahiert quantitative Depression-KPIs aus der Sitzung inkl. klinischer Sub-Signale.",
-    parameters: {
-      type: "object",
-      properties: {
-        depressionSeverity: { type: "integer", minimum: 0, maximum: 100, description: "Globaler Eindruck 0-100. 0=keine Symptome, 100=schwerste." },
-        negativeBeliefsCount: { type: "integer", minimum: 0 },
-        adaptiveBeliefsCount: { type: "integer", minimum: 0 },
-        positiveActivitiesCount: { type: "integer", minimum: 0 },
-        activeActivities: { type: "integer", minimum: 0 },
-        passiveActivities: { type: "integer", minimum: 0 },
-        socialContactsCount: { type: "integer", minimum: 0 },
-        socialInitiated: { type: "integer", minimum: 0 },
-        socialPassive: { type: "integer", minimum: 0 },
-        emotionAwareness: { type: "integer", minimum: 0, maximum: 5 },
-        emotionRegulation: { type: "integer", minimum: 0, maximum: 5 },
-        positiveSelfStatements: { type: "integer", minimum: 0 },
-        negativeSelfStatements: { type: "integer", minimum: 0 },
-
-        // Klinische Sub-Signale 0-10
-        mood: { type: "integer", minimum: 0, maximum: 10, description: "Stimmung: 0=sehr niedergedrückt, 10=ausgeglichen/positiv." },
-        anhedonia: { type: "integer", minimum: 0, maximum: 10, description: "Freudverlust 0=keiner, 10=komplette Anhedonie." },
-        energy: { type: "integer", minimum: 0, maximum: 10, description: "Antrieb 0=erschöpft, 10=vital." },
-        cognition: { type: "integer", minimum: 0, maximum: 10, description: "Konzentration/Denken 0=blockiert, 10=klar." },
-        hopelessness: { type: "integer", minimum: 0, maximum: 10, description: "Hoffnungslosigkeit 0=keine, 10=total." },
-        selfDeprecation: { type: "integer", minimum: 0, maximum: 10, description: "Selbstabwertung 0=keine, 10=stark." },
-        guilt: { type: "integer", minimum: 0, maximum: 10, description: "Schuldgefühle 0=keine, 10=überwältigend." },
-        avoidanceCount: { type: "integer", minimum: 0, description: "Berichtete Vermeidungs-Episoden." },
-        functioningWork: { type: "integer", minimum: 0, maximum: 10, description: "Funktion Arbeit/Studium 0=nicht arbeitsfähig, 10=voll." },
-        functioningSocial: { type: "integer", minimum: 0, maximum: 10 },
-        functioningDaily: { type: "integer", minimum: 0, maximum: 10, description: "Alltag/Selbstversorgung." },
-        sleepDisturbance: { type: "integer", minimum: 0, maximum: 10, description: "Schlafstörung 0=keine, 10=massiv." },
-        psychomotor: { type: "integer", minimum: 0, maximum: 10, description: "Psychomotorische Verlangsamung/Agitation 0=keine, 10=ausgeprägt." },
-        somaticSymptoms: { type: "integer", minimum: 0, maximum: 10, description: "Somatische Beschwerden 0=keine, 10=stark." },
-
-        // Risiko
-        riskLevel: { type: "integer", minimum: 0, maximum: 3, description: "0=keine, 1=passive Ideation, 2=aktive Ideation, 3=Planung." },
-        riskNotes: { type: "string", description: "Kurze Begründung bei Risk>0, sonst leer." },
-
-        // SCID/CIDI proxy
-        scid: {
-          type: "object",
-          description: "Rekonstruierter Status nach DSM-5/ICD-10 Major Depressive Episode.",
-          properties: {
-            coreSymptoms: { type: "boolean", description: "Kernsymptome (Stimmung ODER Anhedonie) ≥2 Wochen." },
-            durationOver2Weeks: { type: "boolean" },
-            functionalImpairment: { type: "boolean" },
-            exclusionOtherDisorder: { type: ["boolean", "null"], description: "Andere Störung ausgeschlossen? null wenn unklar." },
-            confidence: { type: "string", enum: ["low", "medium", "high"] },
-            likelyDiagnosis: { type: "string", description: "z.B. 'Major Depressive Episode' oder 'Anpassungsstörung'." },
-          },
-          required: ["coreSymptoms", "durationOver2Weeks", "functionalImpairment", "confidence"],
-          additionalProperties: false,
-        },
-
-        // Drilldown
-        keyQuotes: {
-          type: "array",
-          maxItems: 5,
-          description: "Bis zu 5 wörtliche, prägnante Zitate aus dem Transkript.",
-          items: {
-            type: "object",
-            properties: {
-              text: { type: "string" },
-              tag: { type: "string", enum: ["belief", "emotion", "risk", "activity", "insight"] },
-            },
-            required: ["text", "tag"],
-            additionalProperties: false,
-          },
-        },
-
-        notes: { type: "string", description: "Kurze Begründung, 1-2 Sätze." },
-      },
-      required: [
-        "depressionSeverity","negativeBeliefsCount","adaptiveBeliefsCount",
-        "positiveActivitiesCount","socialContactsCount",
-        "emotionAwareness","emotionRegulation","positiveSelfStatements",
-      ],
-      additionalProperties: false,
-    },
-  },
-};
-
-async function runKPIExtraction(apiKey: string, payload: any, pseudo?: string) {
-  const transcript: string = payload?.transcript ?? "";
-  if (!transcript.trim()) throw new Error("Transkript fehlt");
-
-  const system =
-    "Du bist ein quantitativer Therapie-Analyst für Depression (F32/F33) in Deutschland. " +
-    `Du arbeitest mit pseudonymisierten Sitzungs-Transkripten. Patient:in: '${pseudo ?? "[PATIENT:IN]"}'.\n\n` +
-    "AUFGABE: Extrahiere QUANTITATIVE KPIs und klinische Sub-Signale aus einer einzelnen Sitzung.\n\n" +
-    "STRENGE REGELN:\n" +
-    "1. Nur werten, was im Transkript explizit genannt oder klar erkennbar ist. Im Zweifel niedriger / 0.\n" +
-    "2. Sub-Signale (mood/anhedonia/energy/cognition/sleepDisturbance/psychomotor/somaticSymptoms/guilt/hopelessness/selfDeprecation): " +
-    "Skala 0-10. Wenn nicht erwähnt: weglassen (NICHT raten). Bei mood/energy/cognition: 10 = positiv/gesund, 0 = schlecht. " +
-    "Bei anhedonia/hopelessness/selfDeprecation/guilt/sleepDisturbance/psychomotor/somaticSymptoms: 10 = stark belastend, 0 = nicht vorhanden.\n" +
-    "3. functioningWork/Social/Daily: 10 = volle Funktion, 0 = nicht funktionsfähig. Nur setzen wenn berichtet.\n" +
-    "4. riskLevel: 0 default. Nur erhöhen bei klaren Hinweisen. 1=Lebensmüdigkeit ohne Plan, 2=aktive Suizidgedanken, 3=Plan/Vorbereitung. " +
-    "Bei riskLevel>0 immer riskNotes mit Original-Hinweis.\n" +
-    "5. scid: konservativ. confidence='high' nur wenn alle 4 Kriterien klar im Transkript belegt. Sonst 'medium' oder 'low'.\n" +
-    "6. keyQuotes: max. 5 WÖRTLICHE kurze Zitate (max. 20 Wörter), die zentrale beliefs/emotions/risks/insights belegen.\n" +
-    "7. Beliefs: zähle DISTINKTE Aussagen, keine Wiederholungen.\n" +
-    "8. depressionSeverity: Gesamteindruck 0-100, grob an PHQ-9-Logik. Verlaufs-Indikator, KEINE Diagnose.\n" +
-    "9. notes: 1-2 Sätze neutrale Begründung.";
-
-  return await callAnthropic(apiKey, "claude-sonnet-5", {
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: `Sitzungs-Transkript:\n${transcript}` },
-    ],
-    tools: [KPI_TOOL],
-    tool_choice: { type: "function", function: { name: "return_session_kpis" } },
-  });
-}
-
 
 // ============== Anamnese-Extraktion (VT-Bögen 1–3) ==============
 
@@ -926,22 +724,6 @@ Deno.serve(async (req: Request) => {
 
 
     // Spezial-Pfad: Depression KPI Extraction
-    if (task === "depression-kpi-extract") {
-      try {
-        const result = await runKPIExtraction(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (e: any) {
-        const msg = e?.message ?? "Unbekannt";
-        const status = msg === "RATE_LIMIT" ? 429 : 500;
-        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." : msg;
-        return new Response(JSON.stringify({ error: text }),
-          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-    }
-
-
     // Spezial-Pfad: Anamnese-Extraktion (VT-Bögen 1–3)
     if (task === "anamnese-extract") {
       try {
@@ -993,25 +775,13 @@ Deno.serve(async (req: Request) => {
     }
 
 
-    const reqBody = buildRequest(task, payload ?? {}, patientPseudonym);
-    try {
-      const parsed = await callAnthropic(ANTHROPIC_API_KEY, MODEL, reqBody);
-      return new Response(JSON.stringify(parsed), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } catch (e: any) {
-      const msg = e?.message ?? "Unbekannt";
-      if (msg === "RATE_LIMIT") {
-        return new Response(JSON.stringify({ error: "Zu viele Anfragen – bitte kurz warten." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: msg }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Jede unterstützte Task hat oben einen eigenen Pfad. Alles andere ist ein
+    // Aufruf-Fehler und wird als solcher gemeldet, statt in einen generischen
+    // Prompt zu laufen.
+    return new Response(JSON.stringify({ error: `Unbekannte Task: ${task}` }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("ai-assist Fehler:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unbekannt" }), {

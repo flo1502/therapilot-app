@@ -154,7 +154,7 @@ export async function migrateLocalToCloud(): Promise<{ patients: number; session
   if (!(await isAuthed())) {
     throw new Error("Bitte zuerst einloggen.");
   }
-  const { safeDecrypt } = await import("@/lib/crypto");
+  const { safeDecrypt } = await import("@/lib/legacyCrypto");
 
   const patients = await db.patients.toArray();
   const sessions = await db.sessions.toArray();

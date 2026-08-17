@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { db, nextPatientPseudonym, Patient, TherapyApproach } from "@/lib/db";
-import { safeDecrypt } from "@/lib/crypto";
+import { safeDecrypt } from "@/lib/legacyCrypto";
 import { ensureAuthed } from "@/lib/authGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
