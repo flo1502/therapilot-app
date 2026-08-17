@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, FileText, User, FileWarning } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
+import { AnamneseProfilePanel } from "@/domains/patients/components/AnamneseProfilePanel";
 import { BefundPanel } from "@/domains/reports/components/BefundPanel";
 import { AktuellerStandCard } from "@/domains/documentation/components/AktuellerStandCard";
 

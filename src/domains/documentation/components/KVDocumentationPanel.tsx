@@ -15,8 +15,8 @@ import {
   KV_SECTION_LABELS,
   KV_SECTION_ORDER,
   kvDocumentationToMarkdown,
-} from "@/lib/kvDocTypes";
-import { validateKVDocumentation, formatKVValidation } from "@/lib/kvGuardrails";
+} from "@/domains/documentation/kvDocTypes";
+import { validateKVDocumentation, formatKVValidation } from "@/domains/documentation/kvGuardrails";
 
 interface Props {
   patientId: string;

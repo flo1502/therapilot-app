@@ -11,17 +11,23 @@ mit lokalem LLM statt Cloud-AI für alles, was Patientendaten berührt.
 - Optional lokal: `services/local-llm` (eigener Model-Server + RAG)
 
 ## Struktur
-- `src/domains/` — Fachlogik nach Domäne (sessions, documentation, reports, patients, assistant). Neue Features gehören hierhin, nicht in flache `src/components` oder `src/pages`.
-- `src/lib/ai/` — Modell-Abstraktion; `tasks.ts` mappt eine Aufgabe auf Provider + Prompt, `providers/` enthält die konkreten Implementierungen (Anthropic, lokales Llama).
-- `src/lib/supabase/` — Supabase-Client und generierte Typen.
-- `src/config/data-classes.ts` — Datenklassifizierung (`patient | internal | public`); bestimmt, was eine Cloud-API erreichen darf.
-- `supabase/functions/` — Edge Functions, eine pro AI-Aufgabe (`structure-session`, `generate-report`, `session-briefing`, `rag-query`), `_shared/` für Prompt-Loader/Validierung.
-- `prompts/` — versionierte Prompts (`*.v1.md`), nie im Code hardcodiert.
-- `docs/report-templates/` + `docs/report-schema.json` — Referenz-PDFs der 10 Berichtsarten und die daraus extrahierte Struktur.
+- `src/domains/` — Fachlogik nach Domäne. Neue Features gehören hierhin, nicht in flache `src/components` oder `src/pages`.
+  - `documentation/` — KV-Verlaufsdokumentation (`kvDocTypes.ts`, `kvGuardrails.ts`, `KVDocumentationPanel`) und das Vorbereitungs-Briefing „Aktueller Stand" (`types.ts`, `useSessionBriefing`, `AktuellerStandCard`).
+  - `patients/` — Anamnese-Profil (`anamneseTypes.ts`, `AnamneseProfilePanel`).
+  - `sessions/` — CBT-Schema-Analyse (`schemaTypes.ts`, `SchemaChatFeed`).
+  - `reports/` — psychotherapeutischer Befund (`types.ts`, `BefundPanel`).
+- `src/lib/` — Querschnitt, nicht domänenspezifisch: `db.ts` (Dexie), `cloudSync.ts`, `pseudonymize.ts`, `authGuard.ts`/`authState.ts`, `demoSeed.ts`, `legacyCrypto.ts`.
+- `src/lib/ai/` — Modell-Abstraktion. `providers/` enthält die Implementierungen (`local-llama.ts` fertig, `anthropic.ts` noch Stub); `tasks.ts` soll Aufgabe → Provider mappen, ist aber noch nicht implementiert. Der aktive Pfad läuft heute über `provider.ts` direkt in die Edge Function.
+- `src/integrations/supabase/` — Supabase-Client und generierte Typen.
+- `src/config/data-classes.ts` — Datenklassifizierung (`patient | internal | public`). Aktuell nur eine Typdefinition, noch ohne durchsetzende Stelle im Code.
+- `supabase/functions/ai-assist/` — eine Edge Function, die alle AI-Aufgaben über ein `task`-Feld unterscheidet (`kv-documentation`, `cbt-schema-analysis`, `anamnese-extract`, `befund-generate`, `briefing-generate`).
+- `prompts/` — versionierte Prompts (`*.v1.md`). Referenz für neue Dokumenttypen; die Edge Function hält die Prompt-Texte derzeit noch zusätzlich inline.
+- `docs/report-templates/` + `docs/report-schema.json` — Referenz-PDFs der 10 Berichtsarten und die daraus extrahierte Struktur (beides noch leer).
 - `docs/compliance/` — Datenflüsse, AVV, TOM.
 - `services/local-llm/` — außerhalb des Lovable-Scope; eigener Docker-Service für lokale Inferenz + RAG.
 
 ## Wichtig
-- Alles unter `src/` (außer `src/domains` sobald migriert) wird von Lovable synchronisiert — Änderungen dort landen direkt im Lovable-Projekt. Sei entsprechend vorsichtig mit größeren Refactors.
-- Patientendaten (`data-class: patient`) dürfen nicht ungeprüft an Cloud-Provider gehen — siehe `src/lib/pseudonymize.ts` für den bestehenden Mechanismus, der in `lib/validation/` konsolidiert werden soll.
-- Aktuell existiert noch keine echte Migration von `src/pages`/`src/components`/`src/lib` in `src/domains` — das ist ein bewusst schrittweiser Prozess, kein Big-Bang-Rewrite.
+- Alles unter `src/` wird von Lovable synchronisiert — Änderungen dort landen direkt im Lovable-Projekt. Sei entsprechend vorsichtig mit größeren Refactors.
+- Patientendaten (`data-class: patient`) dürfen nicht ungeprüft an Cloud-Provider gehen. Der bestehende Mechanismus ist `src/lib/pseudonymize.ts`, eingehängt in `src/lib/ai/provider.ts`. Er ist ein Best-Effort-Filter (Regex + Liste gängiger Vornamen), keine Garantie — Nachnamen und Ortsnamen erkennt er nicht.
+- Neue Wege, auf denen Patientendaten das Gerät verlassen, müssen durch `pseudonymize` laufen. Ein früherer n8n-Webhook hat rohe Transkripte daran vorbei an einen Drittanbieter geschickt und wurde entfernt.
+- Die Migration von `src/pages`/`src/components` in `src/domains` läuft schrittweise. Fachpanels und Domänentypen sind umgezogen; Seiten (`src/pages`) und Querschnitts-Code (`src/lib`) bleiben vorerst, wo sie sind.

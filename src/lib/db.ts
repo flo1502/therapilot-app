@@ -22,7 +22,7 @@ export interface Patient {
   active: boolean;
 
   // Anamnese-Profil (additiv, aufgebaut aus Sessions 1–7)
-  anamneseProfile?: import("./anamneseTypes").AnamneseProfile;
+  anamneseProfile?: import("../domains/patients/anamneseTypes").AnamneseProfile;
   anamneseUpdatedAt?: number;
 
   // Psychotherapeutischer Befund (additiv), erzeugt aus Anamnese + Stundenprotokollen
@@ -52,8 +52,8 @@ export interface SessionEntry {
 
   // KV-Verlaufsdokumentation (additive, optional)
   transcript?: string;
-  kvDocumentation?: import("./kvDocTypes").KVDocumentation;
-  kvExtraction?: import("./kvDocTypes").KVExtraction;
+  kvDocumentation?: import("../domains/documentation/kvDocTypes").KVDocumentation;
+  kvExtraction?: import("../domains/documentation/kvDocTypes").KVExtraction;
   kvValidation?: {
     score: number;
     errors: string[];
@@ -62,7 +62,7 @@ export interface SessionEntry {
   };
 
   // CBT-Schema-Analyse (additive, optional)
-  schemaAnalysis?: import("./schemaTypes").SchemaAnalysisResult;
+  schemaAnalysis?: import("../domains/sessions/schemaTypes").SchemaAnalysisResult;
   schemaAnalyzedAt?: number;
 
   // Depression KPI Tracking (additive, optional)

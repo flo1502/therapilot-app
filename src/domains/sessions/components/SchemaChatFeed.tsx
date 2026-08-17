@@ -6,7 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Sparkles, RefreshCw, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { callAi } from "@/lib/ai/provider";
-import type { SchemaAnalysisResult, SchemaGroup } from "@/lib/schemaTypes";
+import type { SchemaAnalysisResult, SchemaGroup } from "@/domains/sessions/schemaTypes";
 
 interface Props {
   sessionId: string;

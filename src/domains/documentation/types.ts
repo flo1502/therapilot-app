@@ -1,5 +1,6 @@
-// Domain types for documentation (KV-Verlauf, 7 Sektionen).
-// TODO: migrate relevant types from src/lib/kvDocTypes.ts here.
+// Typen der Dokumentations-Domäne.
+// Die KV-Verlaufsdokumentation (7 Sektionen) liegt daneben in kvDocTypes.ts,
+// die zugehörige Post-Validierung in kvGuardrails.ts.
 
 // ============== Vorbereitungs-Briefing ("Aktueller Stand") ==============
 // Struktur laut prompts/briefing.v1.md. Eingabe sind die KV-Verlaufs-

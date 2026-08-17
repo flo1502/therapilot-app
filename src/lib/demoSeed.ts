@@ -3,9 +3,9 @@
 // in die geteilte Supabase-Tabelle (sofern eingeloggt).
 
 import { db, type Patient, type SessionEntry } from "./db";
-import { emptyAnamneseProfile, type AnamneseProfile, type AnamneseField } from "./anamneseTypes";
-import type { KVDocumentation, KVExtraction } from "./kvDocTypes";
-import type { SchemaAnalysisResult } from "./schemaTypes";
+import { emptyAnamneseProfile, type AnamneseProfile, type AnamneseField } from "@/domains/patients/anamneseTypes";
+import type { KVDocumentation, KVExtraction } from "@/domains/documentation/kvDocTypes";
+import type { SchemaAnalysisResult } from "@/domains/sessions/schemaTypes";
 import type { SessionKPIs } from "./kpiTypes";
 
 export const DEMO_PATIENT_ID = "P-2026-001";

@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { callAi } from "@/lib/ai/provider";
-import { KVDocumentationResult } from "@/lib/kvDocTypes";
-import { validateKVDocumentation } from "@/lib/kvGuardrails";
+import { KVDocumentationResult } from "@/domains/documentation/kvDocTypes";
+import { validateKVDocumentation } from "@/domains/documentation/kvGuardrails";
 import {
   ArrowLeft, ArrowRight, Mic, MicOff, PenLine, Upload, Sparkles, CheckCircle2,
   Info, CalendarClock, UserRound, FileText, Brain, Wand2,

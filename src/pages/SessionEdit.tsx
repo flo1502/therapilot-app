@@ -11,8 +11,8 @@ import { toast } from "sonner";
 import { ensureAuthed } from "@/lib/authGuard";
 import { Save } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { KVDocumentationPanel } from "@/components/KVDocumentationPanel";
-import { SchemaChatFeed } from "@/components/SchemaChatFeed";
+import { KVDocumentationPanel } from "@/domains/documentation/components/KVDocumentationPanel";
+import { SchemaChatFeed } from "@/domains/sessions/components/SchemaChatFeed";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 

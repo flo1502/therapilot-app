@@ -9,7 +9,7 @@ import {
   setField,
   mergeProfiles,
   AnamneseField,
-} from "@/lib/anamneseTypes";
+} from "@/domains/patients/anamneseTypes";
 import { callAi } from "@/lib/ai/provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
