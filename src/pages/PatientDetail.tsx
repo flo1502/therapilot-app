@@ -10,6 +10,7 @@ import { Plus, Pencil, FileText, User, FileWarning } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { AnamneseProfilePanel } from "@/components/anamnese/AnamneseProfilePanel";
 import { BefundPanel } from "@/domains/reports/components/BefundPanel";
+import { AktuellerStandCard } from "@/domains/documentation/components/AktuellerStandCard";
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -34,6 +35,8 @@ export default function PatientDetail() {
           </div>
         }
       />
+
+      <AktuellerStandCard patientId={patient.id} />
 
       <Card className="mb-4">
         <CardContent className="p-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">

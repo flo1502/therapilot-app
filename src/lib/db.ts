@@ -28,6 +28,12 @@ export interface Patient {
   // Psychotherapeutischer Befund (additiv), erzeugt aus Anamnese + Stundenprotokollen
   psychotherapeutischerBefund?: import("../domains/reports/types").PsychotherapeutischerBefund;
   befundUpdatedAt?: number;
+
+  // Hinweis: Das Vorbereitungs-Briefing ("Aktueller Stand") liegt bewusst NICHT
+  // hier, sondern gerätelokal in `settings` – siehe briefingSettingsKey() in
+  // src/domains/documentation/types.ts. Grund: pullAll() ersetzt Patient-Zeilen
+  // per bulkPut vollständig durch die Cloud-Kopie. Ein abgeleiteter Cache würde
+  // dabei verloren gehen und bei jedem Seitenaufruf einen neuen KI-Call auslösen.
 }
 
 export type SessionFormat = "SOAP" | "VT-Verlauf" | "Frei";
@@ -143,6 +149,13 @@ class TheraPilotDB extends Dexie {
       patients: "id, updatedAt, active, approach",
       sessions: "id, patientId, date, createdAt",
       decks: null,
+      settings: "key",
+    });
+    // v10: keine Strukturänderung – das Vorbereitungs-Briefing liegt als
+    // abgeleiteter Cache in der bestehenden settings-Tabelle.
+    this.version(10).stores({
+      patients: "id, updatedAt, active, approach",
+      sessions: "id, patientId, date, createdAt",
       settings: "key",
     });
   }

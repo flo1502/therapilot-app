@@ -742,6 +742,89 @@ const BEFUND_TOOL = {
   },
 };
 
+// ============== Vorbereitungs-Briefing ("Aktueller Stand", letzte 3 Sitzungen) ==============
+// Prompt-Referenz: prompts/briefing.v1.md. Eingabe sind fertige KV-Verlaufs-
+// dokumentationen, keine Rohtranskripte. Internes Arbeitsmittel, geht nicht an
+// Kassen/Gutachter:innen – Diagnose-/Spekulationsverbot gilt trotzdem.
+
+const BRIEFING_TOOL = {
+  type: "function",
+  function: {
+    name: "return_briefing",
+    description: "Liefert das Vorbereitungs-Briefing aus den letzten bis zu 3 dokumentierten Sitzungen.",
+    parameters: {
+      type: "object",
+      properties: {
+        stand: { type: "string", description: "Wo die Behandlung inhaltlich steht, 2-4 Sätze." },
+        veraenderung: { type: "string", description: "Dokumentierte Unterschiede über die Sitzungen hinweg, 1-3 Sätze. Kein Werturteil." },
+        risiko_status: { type: "string", description: "PFLICHT, nie leer. Suizidalität über alle herangezogenen Sitzungen, 1-2 Sätze." },
+        offene_vereinbarungen: { type: "array", items: { type: "string" }, description: "Max. 4 Einträge, je max. 12 Wörter." },
+        offene_themen: { type: "array", items: { type: "string" }, description: "Max. 3 Einträge, je max. 12 Wörter." },
+        administratives: { type: "string", description: "1 Satz oder leerer String." },
+        hinweis_datenlage: { type: "string", description: "Nur bei eingeschränkter Datengrundlage, sonst leerer String." },
+      },
+      required: [
+        "stand", "veraenderung", "risiko_status", "offene_vereinbarungen",
+        "offene_themen", "administratives", "hinweis_datenlage",
+      ],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function runBriefingGeneration(apiKey: string, payload: any, pseudo?: string) {
+  const docs: any[] = Array.isArray(payload?.sessions) ? payload.sessions : [];
+  if (docs.length === 0) {
+    throw new Error("Keine dokumentierten Sitzungen vorhanden.");
+  }
+
+  const system =
+    "Du bist ein klinischer Dokumentations-Assistent für approbierte Psychotherapeut:innen in Deutschland. " +
+    "Du erstellst ein internes Vorbereitungs-Briefing, das die Therapeut:in unmittelbar vor einer Sitzung in " +
+    "ein bis zwei Minuten liest. Deine Eingabe sind BEREITS ERSTELLTE KV-Verlaufsdokumentationen der letzten " +
+    "bis zu drei Sitzungen – keine Rohtranskripte. Du extrahierst nichts neu, du verdichtest nur.\n\n" +
+    `Patient:in (pseudonymisiert): '${pseudo ?? "[PATIENT:IN]"}'. Verwende NIE einen Klarnamen.\n\n` +
+    "SITZUNGSBEZUG: Die Sitzungen sind dir positionell benannt ('jüngste', 'mittlere', 'älteste'), nicht mit " +
+    "Datum – echte Sitzungsdaten verlassen das Gerät nicht. Beziehe dich ausschließlich auf diese " +
+    "Positionsbezeichnungen. Erfinde keine Datumsangaben.\n\n" +
+    "UMFANG: insgesamt ca. 150-200 Wörter. Keine Füllfloskeln.\n\n" +
+    "KEINE EMPFEHLUNGEN: Du gibst keine Behandlungsempfehlungen und schlägst keine Interventionen für die " +
+    "kommende Sitzung vor. offene_themen ist rein beschreibend – was laut Doku offen liegt, ohne Priorisierung " +
+    "und ohne Vorschlag, womit begonnen werden sollte.\n\n" +
+    "KEINE DIAGNOSE: Du stellst keine Diagnose und deutest keine an, auch nicht abgeschwächt ('wirkt', " +
+    "'vermutlich'). Du bewertest nicht, ob die Therapie gut oder schlecht läuft.\n\n" +
+    "ABWESENHEIT IST KEINE BESSERUNG (kritisch): Ein Symptom, das in einer früheren der herangezogenen " +
+    "Sitzungen dokumentiert ist und in der jüngsten fehlt, kann zurückgegangen sein ODER schlicht nicht " +
+    "angesprochen worden sein. Aus den Dokumenten ist das nicht unterscheidbar. Formulierungen wie 'hat sich " +
+    "gebessert', 'rückläufig', 'nicht mehr vorhanden' oder 'stabilisiert' sind UNZULÄSSIG, wenn ihnen nur ein " +
+    "Fehlen zugrunde liegt. Zulässig ist ausschließlich der Befund an den Dokumenten: 'in der jüngsten Sitzung " +
+    "nicht mehr erwähnt'.\n\n" +
+    "RISIKO_STATUS (Pflichtfeld, nie leer): Aussage zur Suizidalität über alle herangezogenen Sitzungen. Steht " +
+    "in keinem Quelldokument etwas dazu: 'Suizidalität ist in den herangezogenen Sitzungen nicht dokumentiert.' " +
+    "– NICHT 'keine Suizidalität', denn nicht dokumentiert und verneint sind verschieden. War Suizidalität in " +
+    "EINER der Sitzungen dokumentiert und taucht in späteren nicht mehr auf, MUSS sie trotzdem genannt werden, " +
+    "mit Angabe der Sitzungsposition und mit dem jüngsten Stand daneben – niemals als Entwarnung weglassen.\n\n" +
+    "ZAHLEN: Stundenkontingent, Fristen und Sitzungsnummern nur wörtlich übernehmen, niemals schätzen oder " +
+    "hochrechnen. Steht nichts da, bleibt administratives leer.\n\n" +
+    "STILREGELN: klinisch-neutral, knappe Fließtext-Sätze, indirekte Wiedergabe, keine direkte Rede, keine " +
+    "wertenden Adjektive ('erfreulich', 'motiviert', 'schwierig'). Wird unter Zeitdruck gelesen – jeder Satz " +
+    "muss beim ersten Lesen verständlich sein.";
+
+  const userContent =
+    `KV-VERLAUFSDOKUMENTATIONEN (neueste zuerst, ${docs.length} Stück):\n` +
+    `${JSON.stringify(docs, null, 0).slice(0, 16000)}\n\n` +
+    "Erstelle jetzt das Vorbereitungs-Briefing.";
+
+  return await callAnthropic(apiKey, "claude-opus-5", {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userContent },
+    ],
+    tools: [BRIEFING_TOOL],
+    tool_choice: { type: "function", function: { name: "return_briefing" } },
+  });
+}
+
 async function runBefundGeneration(apiKey: string, payload: any, pseudo?: string) {
   const anamneseProfile = payload?.anamneseProfile ?? null;
   const kvDocumentations: any[] = Array.isArray(payload?.kvDocumentations) ? payload.kvDocumentations : [];
@@ -863,6 +946,23 @@ Deno.serve(async (req: Request) => {
     if (task === "anamnese-extract") {
       try {
         const result = await runAnamneseExtraction(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const msg = e?.message ?? "Unbekannt";
+        const status = msg === "RATE_LIMIT" ? 429 : 500;
+        const text = msg === "RATE_LIMIT" ? "Zu viele Anfragen – bitte kurz warten." : msg;
+        return new Response(JSON.stringify({ error: text }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+
+    // Spezial-Pfad: Vorbereitungs-Briefing (letzte 3 dokumentierte Sitzungen)
+    if (task === "briefing-generate") {
+      try {
+        const result = await runBriefingGeneration(ANTHROPIC_API_KEY, payload ?? {}, patientPseudonym);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

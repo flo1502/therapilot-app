@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import { PreSessionCard } from "@/components/PreSessionCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -54,8 +53,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </Link>
-
-      <PreSessionCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         <Stat icon={Users} label="Aktive Patient:innen" value={activePatients} to="/patienten" />

@@ -5,7 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { pseudonymize } from "@/lib/pseudonymize";
 
-export type AiTask = "structure-session" | "session-prep" | "kv-documentation" | "cbt-schema-analysis" | "depression-kpi-extract" | "anamnese-extract" | "befund-generate";
+export type AiTask = "structure-session" | "session-prep" | "kv-documentation" | "cbt-schema-analysis" | "depression-kpi-extract" | "anamnese-extract" | "befund-generate" | "briefing-generate";
 
 export interface AiRequest {
   task: AiTask;
