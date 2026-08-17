@@ -111,8 +111,12 @@ function attachDexieHooks() {
   db.patients.hook("creating", (_pk, obj) => {
     if (!suppressPush) pushPatient(obj as Patient).catch(console.warn);
   });
-  db.patients.hook("updating", (_mods, _pk, obj) => {
-    if (!suppressPush) pushPatient(obj as Patient).catch(console.warn);
+  // Dexie übergibt in `obj` den Stand VOR der Änderung. Ohne das Einmischen von
+  // `mods` würde der alte Datensatz hochgeladen und die gerade gespeicherte
+  // Änderung beim nächsten pullAll() (bulkPut ersetzt ganze Zeilen) wieder
+  // lokal überschrieben — betraf u.a. anamneseProfile, Befund und Briefing.
+  db.patients.hook("updating", (mods, _pk, obj) => {
+    if (!suppressPush) pushPatient({ ...(obj as Patient), ...(mods as Partial<Patient>) }).catch(console.warn);
   });
   db.patients.hook("deleting", (pk) => {
     if (!suppressPush) removePatient(pk as string).catch(console.warn);
@@ -121,8 +125,8 @@ function attachDexieHooks() {
   db.sessions.hook("creating", (_pk, obj) => {
     if (!suppressPush) pushSession(obj as SessionEntry).catch(console.warn);
   });
-  db.sessions.hook("updating", (_mods, _pk, obj) => {
-    if (!suppressPush) pushSession(obj as SessionEntry).catch(console.warn);
+  db.sessions.hook("updating", (mods, _pk, obj) => {
+    if (!suppressPush) pushSession({ ...(obj as SessionEntry), ...(mods as Partial<SessionEntry>) }).catch(console.warn);
   });
   db.sessions.hook("deleting", (pk) => {
     if (!suppressPush) removeSession(pk as string).catch(console.warn);
